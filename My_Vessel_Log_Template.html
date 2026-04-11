@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a1628">
+<title>My Vessel Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ocean:    #0a1628;
+    --deep:     #0d1f3c;
+    --hull:     #122347;
+    --steel:    #1a3560;
+    --nav:      #1e4080;
+    --brass:    #c8922a;
+    --brass-lt: #e8b84b;
+    --wake:     #4db8d4;
+    --wake-lt:  #7dd4e8;
+    --red:      #e05252;
+    --red-bg:   rgba(224,82,82,0.12);
+    --amber:    #e09a2a;
+    --amber-bg: rgba(224,154,42,0.12);
+    --green:    #3dba7e;
+    --green-bg: rgba(61,186,126,0.12);
+    --text:     #e8f4f8;
+    --text-dim: #8aafc4;
+    --radius:   12px;
+    --radius-lg:20px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Archivo', sans-serif;
+    background: var(--ocean); color: var(--text);
+    min-height: 100vh; overflow-x: hidden; position: relative;
+  }
+
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(30,64,128,0.4) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(13,31,60,0.6) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding-bottom: 90px; }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(180deg, var(--deep) 0%, rgba(13,31,60,0.95) 100%);
+    border-bottom: 1px solid rgba(200,146,42,0.3);
+    padding: 16px 20px 14px; position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+  .vessel-name { font-family: 'Archivo Black', sans-serif; font-size: 20px; letter-spacing: 0.04em; color: var(--brass-lt); }
+  .vessel-name span { color: var(--wake); }
+  .vessel-subtitle { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+  .hours-bar { display: flex; gap: 10px; margin-top: 12px; }
+  .hours-pill {
+    flex: 1; background: var(--hull); border: 1px solid rgba(77,184,212,0.2);
+    border-radius: 8px; padding: 7px 12px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .hours-pill-label { font-size: 10px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.08em; }
+  .hours-pill input {
+    background: none; border: none; outline: none;
+    font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 500;
+    color: var(--wake); width: 60px; text-align: right;
+  }
+
+  /* ── Nav ── */
+  .nav-tabs {
+    display: flex; background: var(--deep);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 1; min-width: 76px; padding: 12px 6px; text-align: center;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--text-dim); cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all 0.2s; white-space: nowrap;
+  }
+  .tab.active { color: var(--brass-lt); border-bottom-color: var(--brass); }
+  .tab-icon { font-size: 16px; display: block; margin-bottom: 2px; }
+
+  /* ── Sections ── */
+  .section { display: none; padding: 16px; }
+  .section.active { display: block; }
+
+  /* ── Alert banner ── */
+  .alert-banner {
+    background: var(--red-bg); border: 1px solid rgba(224,82,82,0.3);
+    border-radius: var(--radius); padding: 12px 14px; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s ease;
+  }
+  .alert-banner.amber { background: var(--amber-bg); border-color: rgba(224,154,42,0.3); }
+  .alert-icon { font-size: 18px; flex-shrink: 0; }
+  .alert-text { font-size: 13px; line-height: 1.4; }
+  .alert-text strong { display: block; font-size: 12px; color: var(--text-dim); font-weight: 500; margin-bottom: 1px; }
+
+  /* ── Section header ── */
+  .sec-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; margin-top: 4px; }
+  .sec-title { font-family: 'Archivo Black', sans-serif; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+  .sec-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; background: var(--hull); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 2px 8px; color: var(--text-dim); }
+
+  /* ── Task card ── */
+  .task-card {
+    background: var(--hull); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: var(--radius); margin-bottom: 8px; overflow: hidden;
+    cursor: pointer; transition: transform 0.15s; animation: slideIn 0.25s ease both;
+  }
+  .task-card:active { transform: scale(0.98); }
+  .task-card.overdue  { border-left: 3px solid var(--red);   background: linear-gradient(90deg, rgba(224,82,82,0.08) 0%, var(--hull) 40%); }
+  .task-card.due-soon { border-left: 3px solid var(--amber); background: linear-gradient(90deg, rgba(224,154,42,0.08) 0%, var(--hull) 40%); }
+  .task-card.ok       { border-left: 3px solid var(--green); }
+  .task-card.no-sched { border-left: 3px solid rgba(255,255,255,0.15); }
+  .task-main { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+  .task-check {
+    width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; font-size: 11px;
+  }
+  .task-card.overdue  .task-check { border-color: var(--red); }
+  .task-card.due-soon .task-check { border-color: var(--amber); }
+  .task-card.ok       .task-check { border-color: rgba(61,186,126,0.4); }
+  .task-card.logged   .task-check { background: var(--green); border-color: var(--green); color: white; }
+  .task-info { flex: 1; min-width: 0; }
+  .task-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .task-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+  .task-status { font-size: 11px; font-family: 'JetBrains Mono', monospace; padding: 4px 8px; border-radius: 6px; font-weight: 500; flex-shrink: 0; text-align: right; max-width: 90px; }
+  .task-card.overdue  .task-status { background: var(--red-bg);   color: var(--red); }
+  .task-card.due-soon .task-status { background: var(--amber-bg); color: var(--amber); }
+  .task-card.ok       .task-status { background: var(--green-bg); color: var(--green); }
+  .task-card.no-sched .task-status { background: rgba(255,255,255,0.05); color: var(--text-dim); }
+
+  /* ── Combined engine view ── */
+  .engines-header { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .engine-header-pill { border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; }
+  .engine-header-pill.port { background: rgba(77,184,212,0.1); border: 1px solid rgba(77,184,212,0.25); }
+  .engine-header-pill.stbd { background: rgba(200,146,42,0.1); border: 1px solid rgba(200,146,42,0.25); }
+  .engine-pill-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; font-family: 'JetBrains Mono', monospace; }
+  .engine-header-pill.port .engine-pill-label { color: var(--wake); }
+  .engine-header-pill.stbd .engine-pill-label { color: var(--brass-lt); }
+  .engine-pill-val { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 500; color: var(--text); }
+  .engine-pill-sub { font-size: 10px; color: var(--text-dim); }
+
+  .eng-row-card {
+    background: var(--hull); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: var(--radius); margin-bottom: 8px; overflow: hidden; animation: slideIn 0.25s ease both;
+  }
+  .eng-row-name {
+    padding: 9px 14px 6px; font-size: 13px; font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+  }
+  .eng-row-name:active { background: rgba(255,255,255,0.03); }
+  .eng-row-freq { font-size: 10px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-weight: 400; }
+  .eng-row-cols { display: grid; grid-template-columns: 1fr 1fr; }
+  .eng-col { padding: 8px 12px; }
+  .eng-col.port { border-right: 1px solid rgba(255,255,255,0.06); }
+  .eng-col-header { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; font-family: 'JetBrains Mono', monospace; margin-bottom: 4px; }
+  .eng-col.port .eng-col-header { color: var(--wake); }
+  .eng-col.stbd .eng-col-header { color: var(--brass-lt); }
+  .eng-status-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+    padding: 3px 8px; border-radius: 6px; margin-bottom: 3px;
+  }
+  .eng-status-pill.overdue  { background: var(--red-bg);   color: var(--red); }
+  .eng-status-pill.due-soon { background: var(--amber-bg); color: var(--amber); }
+  .eng-status-pill.ok       { background: var(--green-bg); color: var(--green); }
+  .eng-status-pill.no-sched { background: rgba(255,255,255,0.05); color: var(--text-dim); }
+  .eng-col-detail { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+  .eng-row-note { padding: 5px 14px 8px; font-size: 11px; color: var(--text-dim); border-top: 1px solid rgba(255,255,255,0.04); font-style: italic; }
+  .eng-row-card.overdue-any  { border-left: 3px solid var(--red); }
+  .eng-row-card.due-soon-any { border-left: 3px solid var(--amber); }
+  .eng-row-card.ok-all       { border-left: 3px solid var(--green); }
+  .eng-row-card.no-sched-all { border-left: 3px solid rgba(255,255,255,0.15); }
+
+  /* ── Log ── */
+  .log-entry {
+    background: var(--hull); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px; animation: slideIn 0.25s ease;
+  }
+  .log-entry-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+  .log-entry-task { font-size: 14px; font-weight: 600; }
+  .log-entry-date { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+  .log-entry-meta { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+  .log-entry-tag { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; padding: 2px 7px; border-radius: 4px; margin-right: 4px; margin-top: 4px; }
+  .tag-port  { background: rgba(77,184,212,0.15);  color: var(--wake); }
+  .tag-stbd  { background: rgba(200,146,42,0.15);  color: var(--brass-lt); }
+  .tag-gen   { background: rgba(61,186,126,0.15);  color: var(--green); }
+
+  /* ── Inventory ── */
+  .inv-card { background: var(--hull); border: 1px solid rgba(255,255,255,0.07); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px; }
+  .inv-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .inv-name { font-size: 14px; font-weight: 600; }
+  .inv-stock { font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 3px 9px; border-radius: 6px; }
+  .inv-stock.low  { background: var(--red-bg);   color: var(--red); }
+  .inv-stock.ok   { background: var(--green-bg); color: var(--green); }
+  .inv-stock.none { background: var(--amber-bg); color: var(--amber); }
+  .inv-meta { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+  .inv-cat { display: inline-block; font-size: 10px; letter-spacing: 0.05em; background: var(--steel); color: var(--wake-lt); padding: 2px 7px; border-radius: 4px; margin-bottom: 5px; font-weight: 600; }
+
+  /* ── Export ── */
+  .export-box { background: var(--hull); border: 1px solid rgba(200,146,42,0.25); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; }
+  .export-title { font-family: 'Archivo Black', sans-serif; font-size: 14px; color: var(--brass-lt); margin-bottom: 6px; }
+  .export-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; line-height: 1.5; }
+  .export-text { background: var(--ocean); border: 1px solid rgba(77,184,212,0.2); border-radius: 10px; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.7; color: var(--wake-lt); white-space: pre-wrap; word-break: break-word; min-height: 60px; }
+  .btn-copy { width: 100%; padding: 13px; background: var(--steel); border: 1px solid rgba(77,184,212,0.3); border-radius: var(--radius); color: var(--wake); font-family: 'Archivo Black', sans-serif; font-size: 13px; letter-spacing: 0.05em; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
+  .btn-copy:active { background: var(--nav); }
+  .btn-copy.copied { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+
+  /* ── Bottom nav ── */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(13,31,60,0.97); border-top: 1px solid rgba(200,146,42,0.2);
+    backdrop-filter: blur(12px);
+    display: flex; padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+    max-width: 480px; margin: 0 auto;
+  }
+  @media (min-width: 480px) { .bottom-nav { left: 50%; transform: translateX(-50%); width: 480px; } }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 0; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; color: var(--text-dim); transition: color 0.2s; }
+  .nav-item.active { color: var(--brass-lt); }
+  .nav-icon { font-size: 20px; }
+  .nav-item.active .nav-icon { filter: drop-shadow(0 0 6px rgba(232,184,75,0.5)); }
+
+  /* FAB */
+  .fab { position: fixed; bottom: calc(72px + env(safe-area-inset-bottom)); right: 20px; width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--brass) 0%, var(--brass-lt) 100%); border: none; cursor: pointer; z-index: 99; display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--ocean); box-shadow: 0 4px 20px rgba(200,146,42,0.4); transition: transform 0.2s; }
+  .fab:active { transform: scale(0.92); }
+
+  /* ── Log form ── */
+  .log-overlay { position: fixed; inset: 0; background: rgba(10,22,40,0.85); z-index: 200; display: none; align-items: flex-end; backdrop-filter: blur(4px); }
+  .log-overlay.open { display: flex; }
+  .log-panel { width: 100%; max-width: 480px; margin: 0 auto; background: var(--deep); border-top: 1px solid rgba(200,146,42,0.3); border-radius: 20px 20px 0 0; padding: 20px 20px 40px; animation: slideUp 0.3s cubic-bezier(0.34,1.2,0.64,1); max-height: 90vh; overflow-y: auto; }
+  .log-handle { width: 36px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; margin: 0 auto 18px; }
+  .log-title { font-family: 'Archivo Black', sans-serif; font-size: 16px; color: var(--brass-lt); margin-bottom: 4px; }
+  .log-subtitle { font-size: 12px; color: var(--text-dim); margin-bottom: 18px; }
+  .form-row { margin-bottom: 14px; }
+  .form-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; display: block; }
+  .form-input { width: 100%; background: var(--hull); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 11px 14px; color: var(--text); font-family: 'Archivo', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s; }
+  .form-input:focus { border-color: var(--wake); }
+  .form-input::placeholder { color: var(--text-dim); }
+  textarea.form-input { resize: none; height: 72px; line-height: 1.5; }
+  .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .engine-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .engine-chip { padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; color: var(--text-dim); }
+  .engine-chip.selected { background: var(--steel); border-color: var(--wake); color: var(--wake); }
+  .btn-log { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--brass) 0%, var(--brass-lt) 100%); border: none; border-radius: var(--radius); color: var(--ocean); font-family: 'Archivo Black', sans-serif; font-size: 15px; letter-spacing: 0.04em; cursor: pointer; margin-top: 6px; }
+  .btn-log:active { opacity: 0.85; }
+  .btn-cancel { width: 100%; padding: 12px; background: none; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius); color: var(--text-dim); font-size: 14px; cursor: pointer; margin-top: 8px; }
+
+  /* ── Photo notes ── */
+  .photo-upload-area { border: 2px dashed rgba(77,184,212,0.3); border-radius: var(--radius); padding: 14px; text-align: center; cursor: pointer; background: rgba(77,184,212,0.03); position: relative; }
+  .photo-upload-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .photo-upload-icon { font-size: 24px; margin-bottom: 4px; }
+  .photo-upload-label { font-size: 12px; color: var(--text-dim); }
+  .photo-upload-label span { color: var(--wake); font-weight: 600; }
+  .photo-previews { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .photo-thumb-wrap { position: relative; width: 72px; height: 72px; border-radius: 8px; overflow: hidden; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1); }
+  .photo-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
+  .photo-thumb-del { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: rgba(10,22,40,0.85); border: none; color: white; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .log-photo-strip { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .log-photo-thumb { width: 60px; height: 60px; border-radius: 6px; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
+  .photo-count-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--wake); background: rgba(77,184,212,0.12); border-radius: 6px; padding: 2px 7px; margin-top: 6px; }
+
+  /* ── Photo viewer ── */
+  .photo-viewer { position: fixed; inset: 0; background: rgba(5,10,20,0.97); z-index: 500; display: none; flex-direction: column; align-items: center; justify-content: center; }
+  .photo-viewer.open { display: flex; }
+  .photo-viewer-img { max-width: 100%; max-height: calc(100vh - 120px); border-radius: 8px; object-fit: contain; }
+  .photo-viewer-bar { position: absolute; top: 0; left: 0; right: 0; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(180deg, rgba(5,10,20,0.9) 0%, transparent 100%); }
+  .photo-viewer-title { font-size: 13px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+  .photo-viewer-close { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .photo-viewer-nav { position: absolute; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; gap: 12px; }
+  .photo-nav-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.3); cursor: pointer; }
+  .photo-nav-dot.active { background: var(--wake); }
+  .photo-viewer-arrows { position: absolute; top: 50%; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 12px; transform: translateY(-50%); pointer-events: none; }
+  .photo-arrow { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 18px; cursor: pointer; pointer-events: all; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+
+  /* ── Stock adjustment ── */
+  .stock-toggle { display: flex; align-items: center; justify-content: space-between; background: var(--hull); border: 1px solid rgba(77,184,212,0.2); border-radius: var(--radius); padding: 11px 14px; cursor: pointer; }
+  .stock-toggle-label { font-size: 13px; color: var(--text-dim); }
+  .stock-toggle-label span { color: var(--wake); font-weight: 600; }
+  .stock-toggle-arrow { font-size: 12px; color: var(--text-dim); transition: transform 0.2s; }
+  .stock-toggle-arrow.open { transform: rotate(180deg); }
+  .stock-panel { display: none; margin-top: 8px; background: rgba(77,184,212,0.05); border: 1px solid rgba(77,184,212,0.15); border-radius: var(--radius); padding: 12px; }
+  .stock-panel.open { display: block; animation: slideIn 0.2s ease; }
+  .stock-part-select { width: 100%; background: var(--hull); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 11px 14px; color: var(--text); font-family: 'Archivo', sans-serif; font-size: 14px; outline: none; margin-bottom: 10px; -webkit-appearance: none; }
+  .stock-part-select option { background: var(--deep); }
+  .stock-adj-row { display: flex; align-items: center; gap: 10px; }
+  .stock-adj-btn { width: 40px; height: 40px; border-radius: 50%; border: none; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: transform 0.1s; font-weight: 600; }
+  .stock-adj-btn:active { transform: scale(0.9); }
+  .stock-adj-btn.minus { background: var(--red-bg); color: var(--red); border: 1px solid rgba(224,82,82,0.3); }
+  .stock-adj-btn.plus  { background: var(--green-bg); color: var(--green); border: 1px solid rgba(61,186,126,0.3); }
+  .stock-adj-display { flex: 1; text-align: center; background: var(--hull); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px; }
+  .stock-adj-current { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 600; color: var(--wake); }
+  .stock-adj-label { font-size: 10px; color: var(--text-dim); margin-top: 2px; letter-spacing: 0.05em; }
+  .stock-adj-change { font-size: 11px; font-family: 'JetBrains Mono', monospace; margin-top: 8px; text-align: center; min-height: 16px; }
+  .stock-adj-change.adding { color: var(--green); }
+  .stock-adj-change.removing { color: var(--red); }
+
+  /* Toast */
+  .toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--green); color: var(--ocean); font-family: 'Archivo Black', sans-serif; font-size: 13px; padding: 10px 20px; border-radius: 20px; opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 300; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .divider { height: 1px; background: rgba(255,255,255,0.06); margin: 14px 0; }
+  .empty { text-align: center; padding: 40px 20px; color: var(--text-dim); }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+  .empty-text { font-size: 14px; line-height: 1.6; }
+
+  @keyframes slideIn  { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes slideUp  { from { transform: translateY(100%); } to { transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div>
+      <div class="vessel-name">⚓ MY <span>VESSEL LOG</span></div>
+      <div class="vessel-subtitle" id="headerDate">—</div>
+    </div>
+    <div class="hours-bar">
+      <div class="hours-pill">
+        <span class="hours-pill-label">PORT HRS</span>
+        <input type="number" id="portHrs" value="0" min="0" max="99999" onchange="updateHours()">
+      </div>
+      <div class="hours-pill">
+        <span class="hours-pill-label">STBD HRS</span>
+        <input type="number" id="stbdHrs" value="0" min="0" max="99999" onchange="updateHours()">
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <div class="tab active" onclick="showTab('dashboard')"><span class="tab-icon">📊</span>Dash</div>
+    <div class="tab" onclick="showTab('engine')"><span class="tab-icon">⚙️</span>Engines</div>
+    <div class="tab" onclick="showTab('log')"><span class="tab-icon">📋</span>Log</div>
+    <div class="tab" onclick="showTab('inventory')"><span class="tab-icon">📦</span>Parts</div>
+    <div class="tab" onclick="showTab('export')"><span class="tab-icon">📤</span>Export</div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="section active" id="tab-dashboard">
+    <div id="dashAlerts"></div>
+    <div class="sec-header">
+      <div class="sec-title">Engine Tasks</div>
+      <div class="sec-badge" id="engBadge">—</div>
+    </div>
+    <div id="dashEngineTasks"></div>
+    <div class="divider"></div>
+    <div class="sec-header"><div class="sec-title">Scheduled Maintenance</div></div>
+    <div id="dashScheduled"></div>
+  </div>
+
+  <!-- ENGINES -->
+  <div class="section" id="tab-engine">
+    <div class="engines-header">
+      <div class="engine-header-pill port">
+        <div class="engine-pill-label">⬅ PORT ENGINE</div>
+        <div class="engine-pill-val" id="portHrsDisplay">0 hrs</div>
+        <div class="engine-pill-sub">Current hours</div>
+      </div>
+      <div class="engine-header-pill stbd">
+        <div class="engine-pill-label">STBD ENGINE ➡</div>
+        <div class="engine-pill-val" id="stbdHrsDisplay">0 hrs</div>
+        <div class="engine-pill-sub">Current hours</div>
+      </div>
+    </div>
+    <div id="engineTaskList"></div>
+  </div>
+
+  <!-- LOG -->
+  <div class="section" id="tab-log">
+    <div class="sec-header">
+      <div class="sec-title">Maintenance Log</div>
+      <div class="sec-badge" id="logBadge">0 entries</div>
+    </div>
+    <div id="logList"></div>
+  </div>
+
+  <!-- INVENTORY -->
+  <div class="section" id="tab-inventory">
+    <div class="sec-header"><div class="sec-title">Parts Inventory</div></div>
+    <div id="inventoryList"></div>
+  </div>
+
+  <!-- EXPORT -->
+  <div class="section" id="tab-export">
+    <div class="export-box">
+      <div class="export-title">📤 Export Summary</div>
+      <div class="export-sub">Start a new Claude chat, upload your spreadsheet, paste this summary and say <em style="color:var(--wake)">"please update my spreadsheet"</em>.</div>
+      <div class="export-text" id="exportText">Log tasks first to generate export summary.</div>
+      <button class="btn-copy" id="copyBtn" onclick="copyExport()">Copy to Clipboard</button>
+    </div>
+    <div class="export-box">
+      <div class="export-title">📋 How To Update</div>
+      <div class="export-sub" style="margin-bottom:0">
+        <strong style="color:var(--text)">Step 1</strong> — Log tasks using the ＋ button as you work<br><br>
+        <strong style="color:var(--text)">Step 2</strong> — Come here and tap <em style="color:var(--brass-lt)">Copy to Clipboard</em><br><br>
+        <strong style="color:var(--text)">Step 3</strong> — Open Claude, upload your spreadsheet and paste your summary<br><br>
+        <strong style="color:var(--text)">Step 4</strong> — Ask Claude to regenerate the app so statuses stay current
+      </div>
+    </div>
+    <div class="export-box">
+      <div class="export-title">📊 Session Tasks</div>
+      <div class="export-sub">Tasks logged this session:</div>
+      <div id="sessionSummary" class="export-text">No tasks logged yet.</div>
+    </div>
+  </div>
+
+</div>
+
+<button class="fab" onclick="openLogForm()">＋</button>
+
+<div class="bottom-nav">
+  <div class="nav-item active" onclick="showTab('dashboard')"><span class="nav-icon">📊</span>DASH</div>
+  <div class="nav-item" onclick="showTab('engine')"><span class="nav-icon">⚙️</span>ENGINES</div>
+  <div class="nav-item" onclick="showTab('log')"><span class="nav-icon">📋</span>LOG</div>
+  <div class="nav-item" onclick="showTab('inventory')"><span class="nav-icon">📦</span>PARTS</div>
+  <div class="nav-item" onclick="showTab('export')"><span class="nav-icon">📤</span>EXPORT</div>
+</div>
+
+<!-- Log form -->
+<div class="log-overlay" id="logOverlay" onclick="overlayClick(event)">
+  <div class="log-panel">
+    <div class="log-handle"></div>
+    <div class="log-title" id="logFormTitle">Log Maintenance Task</div>
+    <div class="log-subtitle">Record completed work for spreadsheet update</div>
+    <div class="form-row">
+      <label class="form-label">Task Name</label>
+      <input class="form-input" id="fTask" placeholder="e.g. Oil and Filters" list="taskSuggestions">
+      <datalist id="taskSuggestions"></datalist>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Applies To</label>
+      <div class="engine-chips">
+        <div class="engine-chip selected" data-eng="port" onclick="toggleChip(this)">Port Engine</div>
+        <div class="engine-chip selected" data-eng="stbd" onclick="toggleChip(this)">Stbd Engine</div>
+        <div class="engine-chip" data-eng="general" onclick="toggleChip(this)">General</div>
+      </div>
+    </div>
+    <div class="form-row-2">
+      <div>
+        <label class="form-label">Date</label>
+        <input type="date" class="form-input" id="fDate">
+      </div>
+      <div>
+        <label class="form-label">Engine Hours</label>
+        <input type="number" class="form-input" id="fHours" placeholder="e.g. 250">
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Notes</label>
+      <textarea class="form-input" id="fNotes" placeholder="Parts used, observations, cost…"></textarea>
+    </div>
+    <div class="form-row-2">
+      <div>
+        <label class="form-label">Parts / Cost</label>
+        <input type="text" class="form-input" id="fCost" placeholder="e.g. $45.00">
+      </div>
+      <div>
+        <label class="form-label">Technician</label>
+        <input type="text" class="form-input" id="fTech" placeholder="Optional">
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">📷 Photo Notes</label>
+      <div class="photo-upload-area">
+        <input type="file" id="fPhotos" accept="image/*" multiple capture="environment" onchange="handlePhotoSelect(event)">
+        <div class="photo-upload-icon">📷</div>
+        <div class="photo-upload-label">Tap to take photo or <span>choose from library</span></div>
+      </div>
+      <div class="photo-previews" id="photoPreviews"></div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">📦 Stock Adjustment <span style="color:var(--text-dim);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <div class="stock-toggle" onclick="toggleStockPanel()">
+        <span class="stock-toggle-label" id="stockToggleLabel">Tap to add or remove parts from inventory</span>
+        <span class="stock-toggle-arrow" id="stockArrow">▼</span>
+      </div>
+      <div class="stock-panel" id="stockPanel">
+        <select class="stock-part-select" id="fStockPart" onchange="onStockPartChange()">
+          <option value="">— Select a part —</option>
+        </select>
+        <div class="stock-adj-row">
+          <button class="stock-adj-btn minus" onclick="adjustStock(-1)">−</button>
+          <div class="stock-adj-display">
+            <div class="stock-adj-current" id="stockCurrentDisplay">—</div>
+            <div class="stock-adj-label">IN STOCK</div>
+          </div>
+          <button class="stock-adj-btn plus" onclick="adjustStock(1)">＋</button>
+        </div>
+        <div class="stock-adj-change" id="stockChangeLabel"></div>
+      </div>
+    </div>
+    <button class="btn-log" onclick="submitLog()">✓ Log Task</button>
+    <button class="btn-cancel" onclick="closeLogForm()">Cancel</button>
+  </div>
+</div>
+
+<!-- Photo viewer -->
+<div class="photo-viewer" id="photoViewer">
+  <div class="photo-viewer-bar">
+    <div class="photo-viewer-title" id="viewerTitle">Photo 1 of 1</div>
+    <button class="photo-viewer-close" onclick="closeViewer()">✕</button>
+  </div>
+  <img class="photo-viewer-img" id="viewerImg" src="" alt="Photo">
+  <div class="photo-viewer-arrows">
+    <button class="photo-arrow" id="arrowPrev" onclick="viewerNav(-1)">‹</button>
+    <button class="photo-arrow" id="arrowNext" onclick="viewerNav(1)">›</button>
+  </div>
+  <div class="photo-viewer-nav" id="viewerDots"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// ── CUSTOMER DATA — customise this section for each vessel ────────
+// ═══════════════════════════════════════════════════════════════════
+
+const VESSEL_NAME  = "MV Sea Breeze";       // Boat name
+const VESSEL_TYPE  = "1988 Marinette 32";   // Make / model / year
+const PORT_HOURS   = 142;                   // Current port engine hours
+const STBD_HOURS   = 148;                   // Current stbd engine hours
+
+// Engine tasks — generic diesel, suitable for most twin-diesel vessels
+// nextHrs = hour-based service | nextDate = date-based service
+const engineTasks = [
+  { name:"Engine Oil & Filters",     freq:"250 hrs",   port:{ lastDate:"12-Jan-2025", lastHrs:0,   nextHrs:250,  nextDate:null },        stbd:{ lastDate:"12-Jan-2025", lastHrs:0,   nextHrs:250,  nextDate:null } },
+  { name:"Primary Fuel Filter",      freq:"250 hrs",   port:{ lastDate:"12-Jan-2025", lastHrs:0,   nextHrs:250,  nextDate:null },        stbd:{ lastDate:"12-Jan-2025", lastHrs:0,   nextHrs:250,  nextDate:null } },
+  { name:"Secondary Fuel Filter",    freq:"500 hrs",   port:{ lastDate:"12-Jan-2025", lastHrs:0,   nextHrs:500,  nextDate:null },        stbd:{ lastDate:"12-Jan-2025", lastHrs:0,   nextHrs:500,  nextDate:null } },
+  { name:"Raw Water Impeller",       freq:"annual",    port:{ lastDate:"12-Jan-2025", lastHrs:null,nextHrs:null, nextDate:"12-Jan-2026" }, stbd:{ lastDate:"12-Jan-2025", lastHrs:null,nextHrs:null, nextDate:"12-Jan-2026" } },
+  { name:"Coolant",                  freq:"2 yearly",  port:{ lastDate:"12-Jan-2024", lastHrs:null,nextHrs:null, nextDate:"12-Jan-2026" }, stbd:{ lastDate:"12-Jan-2024", lastHrs:null,nextHrs:null, nextDate:"12-Jan-2026" } },
+  { name:"Transmission Oil",         freq:"500 hrs",   port:{ lastDate:"12-Jan-2025", lastHrs:0,   nextHrs:500,  nextDate:null },        stbd:{ lastDate:"12-Jan-2025", lastHrs:0,   nextHrs:500,  nextDate:null } },
+  { name:"Drive Belts",              freq:"annual",    port:{ lastDate:"12-Jan-2025", lastHrs:null,nextHrs:null, nextDate:"12-Jan-2026" }, stbd:{ lastDate:"12-Jan-2025", lastHrs:null,nextHrs:null, nextDate:"12-Jan-2026" } },
+  { name:"Heat Exchangers",          freq:"2 yearly",  port:{ lastDate:"12-Jan-2024", lastHrs:null,nextHrs:null, nextDate:"12-Jan-2026" }, stbd:{ lastDate:"12-Jan-2024", lastHrs:null,nextHrs:null, nextDate:"12-Jan-2026" } },
+  { name:"Zinc Pencils",             freq:"3 monthly", port:{ lastDate:"12-Jan-2025", lastHrs:null,nextHrs:null, nextDate:"12-Apr-2025" }, stbd:{ lastDate:"12-Jan-2025", lastHrs:null,nextHrs:null, nextDate:"12-Apr-2025" } },
+  { name:"Engine Mounts",            freq:"each haulout",port:{ lastDate:"—",         lastHrs:null,nextHrs:null, nextDate:null },         stbd:{ lastDate:"—",           lastHrs:null,nextHrs:null, nextDate:null },         notes:"Inspect rubber mounts at each haulout" },
+  { name:"Exhaust Elbow",            freq:"annual",    port:{ lastDate:"—",           lastHrs:null,nextHrs:null, nextDate:null },         stbd:{ lastDate:"—",           lastHrs:null,nextHrs:null, nextDate:null },         notes:"Inspect for corrosion or weeping" },
+  { name:"Valve Adjustment",         freq:"500 hrs",   port:{ lastDate:"—",           lastHrs:null,nextHrs:500, nextDate:null },          stbd:{ lastDate:"—",           lastHrs:null,nextHrs:500, nextDate:null },          notes:"Check with engine manual for your specific interval" },
+];
+
+const scheduledTasks = [
+  { name:"Antifouling",             lastDate:"15-Oct-2024", nextDate:"15-Oct-2025", interval:"annual" },
+  { name:"Varnishing / Brightwork", lastDate:"15-Oct-2024", nextDate:"15-Oct-2025", interval:"annual" },
+  { name:"House Batteries",         lastDate:"01-Jan-2022", nextDate:"01-Jan-2027", interval:"5 years" },
+  { name:"Start Batteries",         lastDate:"—",           nextDate:null,           interval:"5 years" },
+  { name:"Through-Hulls & Seacocks",lastDate:"—",           nextDate:null,           interval:"annual", notes:"Exercise all seacocks annually; check for seizing" },
+  { name:"Bilge Pumps",             lastDate:"—",           nextDate:null,           interval:"annual", notes:"Test auto float switch and manual pump" },
+  { name:"Safety Gear",             lastDate:"—",           nextDate:null,           interval:"annual", notes:"Check expiry on flares and fire extinguishers" },
+  { name:"Standing Rigging",        lastDate:"—",           nextDate:null,           interval:"annual", notes:"Inspect for wear, swage cracks, corrosion" },
+];
+
+const inventory = [
+  { id:"INV-001", cat:"Oil",      name:"Engine Oil & Filters",   partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null },
+  { id:"INV-002", cat:"Fuel",     name:"Primary Fuel Filter",    partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null },
+  { id:"INV-003", cat:"Fuel",     name:"Secondary Fuel Filter",  partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null },
+  { id:"INV-004", cat:"Cooling",  name:"Raw Water Impeller",     partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null },
+  { id:"INV-005", cat:"Cooling",  name:"Coolant",                partNum:null,                   vendor:"— add vendor —",  stock:null, cost:null },
+  { id:"INV-006", cat:"Fuel",     name:"Fuel Pump (spare)",      partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null },
+];
+
+// Sample maintenance log — replace with actual vessel history
+const maintenanceLog = [
+  { date:"12-Jan-2025", task:"Engine Oil & Filters",  engine:"port+stbd", notes:"Full service at purchase",       tech:"Previous owner" },
+  { date:"12-Jan-2025", task:"Primary Fuel Filter",   engine:"port+stbd", notes:"Replaced at purchase",          tech:"Previous owner" },
+  { date:"15-Oct-2024", task:"Antifouling",           engine:"general",   notes:"Full hull antifoul",            tech:"" },
+  { date:"15-Oct-2024", task:"Varnishing / Brightwork",engine:"general",  notes:"Cockpit coamings and handrails",tech:"" },
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// ── END CUSTOMER DATA ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+let state = { portHrs: PORT_HOURS, stbdHrs: STBD_HOURS, loggedTasks: [] };
+let pendingPhotos = [];
+let pendingStock = { partId:null, partName:null, delta:0, originalStock:null };
+
+function parseDate(str) {
+  if (!str || str==='—') return null;
+  const months={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  const [d,m,y] = str.split('-');
+  return new Date(parseInt(y), months[m], parseInt(d));
+}
+
+function getEngineStatus(task, side) {
+  const curHrs = side==='port' ? state.portHrs : state.stbdHrs;
+  const data = task[side];
+  const logged = state.loggedTasks.find(l => l.task===task.name && (l.engines.includes(side)||l.engines.includes('both')));
+  if (data.nextHrs !== null) {
+    let nh = data.nextHrs;
+    if (logged && logged.hours) { const iv=parseInt(task.freq); nh=logged.hours+(isNaN(iv)?0:iv); }
+    const rem = nh - curHrs;
+    if (rem<=0)  return {cls:'overdue',  icon:'⚠', detail:`${Math.abs(rem)}hrs over`};
+    if (rem<=25) return {cls:'due-soon', icon:'🔔', detail:`${rem}hrs left`};
+    return         {cls:'ok',       icon:'✓', detail:`+${rem}hrs`};
+  }
+  if (data.nextDate) {
+    const nd = parseDate(data.nextDate);
+    if (!nd) return {cls:'no-sched',icon:'—',detail:'No schedule'};
+    const days = Math.round((nd-new Date())/86400000);
+    if (days<0)   return {cls:'overdue',  icon:'⚠', detail:`${Math.abs(days)}d ago`};
+    if (days<=60) return {cls:'due-soon', icon:'🔔', detail:`${days}d`};
+    return          {cls:'ok',       icon:'✓', detail:`${days}d`};
+  }
+  return {cls:'no-sched',icon:'—',detail:'No date set'};
+}
+
+function getScheduledStatus(task) {
+  const nd = parseDate(task.nextDate);
+  if (!nd) return {cls:'no-sched',icon:'—',detail:'No date set'};
+  const days = Math.round((nd-new Date())/86400000);
+  if (days<0)   return {cls:'overdue',  icon:'⚠', detail:`${Math.abs(days)}d ago`};
+  if (days<=60) return {cls:'due-soon', icon:'🔔', detail:`${days}d`};
+  return          {cls:'ok',       icon:'✓', detail:`${days}d`};
+}
+
+function worstStatus(c1,c2) {
+  const p={overdue:0,'due-soon':1,ok:2,'no-sched':3};
+  return p[c1]<=p[c2]?c1:c2;
+}
+
+function renderAll() {
+  renderDashboard(); renderEngineList(); renderLog(); renderInventory(); renderExport();
+  document.getElementById('portHrsDisplay').textContent = state.portHrs+' hrs';
+  document.getElementById('stbdHrsDisplay').textContent = state.stbdHrs+' hrs';
+}
+
+function renderDashboard() {
+  const overdues = engineTasks.filter(t=>worstStatus(getEngineStatus(t,'port').cls,getEngineStatus(t,'stbd').cls)==='overdue');
+  const dueSoons = engineTasks.filter(t=>worstStatus(getEngineStatus(t,'port').cls,getEngineStatus(t,'stbd').cls)==='due-soon');
+  let alertsHTML='';
+  if (overdues.length) alertsHTML+=`<div class="alert-banner"><span class="alert-icon">🚨</span><div class="alert-text"><strong>Action Required</strong>${overdues.map(t=>t.name).join(', ')}</div></div>`;
+  if (dueSoons.length) alertsHTML+=`<div class="alert-banner amber"><span class="alert-icon">🔔</span><div class="alert-text"><strong>Due Soon</strong>${dueSoons.map(t=>t.name).join(', ')}</div></div>`;
+  document.getElementById('dashAlerts').innerHTML=alertsHTML;
+
+  const sorted=[...engineTasks].sort((a,b)=>{
+    const p={overdue:0,'due-soon':1,ok:2,'no-sched':3};
+    return p[worstStatus(getEngineStatus(a,'port').cls,getEngineStatus(a,'stbd').cls)]-p[worstStatus(getEngineStatus(b,'port').cls,getEngineStatus(b,'stbd').cls)];
+  });
+  let overdueCount=0,dueSoonCount=0,html='';
+  sorted.forEach((task,i)=>{
+    const ps=getEngineStatus(task,'port'),ss=getEngineStatus(task,'stbd');
+    const worst=worstStatus(ps.cls,ss.cls);
+    if(worst==='overdue')overdueCount++;
+    if(worst==='due-soon')dueSoonCount++;
+    const logged=state.loggedTasks.find(l=>l.task===task.name);
+    const displaySt=ps.cls===worst?ps:ss;
+    html+=`<div class="task-card ${worst}${logged?' logged':''}" onclick="quickLog('${task.name}','both')" style="animation-delay:${i*0.03}s"><div class="task-main"><div class="task-check">${logged?'✓':''}</div><div class="task-info"><div class="task-name">${task.name}</div><div class="task-meta">${task.freq}</div></div><div class="task-status">${displaySt.icon} ${displaySt.detail}</div></div></div>`;
+  });
+  document.getElementById('dashEngineTasks').innerHTML=html;
+  document.getElementById('engBadge').textContent=overdueCount?`${overdueCount} overdue`:(dueSoonCount?`${dueSoonCount} due soon`:'All OK');
+
+  let schedHTML='';
+  scheduledTasks.forEach((t,i)=>{
+    const st=getScheduledStatus(t);
+    schedHTML+=`<div class="task-card ${st.cls}" style="animation-delay:${i*0.04}s"><div class="task-main"><div class="task-check"></div><div class="task-info"><div class="task-name">${t.name}</div><div class="task-meta">Last: ${t.lastDate} · ${t.interval}</div></div><div class="task-status">${st.icon} ${st.detail}</div></div></div>`;
+  });
+  document.getElementById('dashScheduled').innerHTML=schedHTML;
+}
+
+function renderEngineList() {
+  let html='';
+  engineTasks.forEach((task,i)=>{
+    const ps=getEngineStatus(task,'port'),ss=getEngineStatus(task,'stbd');
+    const worst=worstStatus(ps.cls,ss.cls);
+    const cardCls=worst==='overdue'?'overdue-any':worst==='due-soon'?'due-soon-any':worst==='ok'?'ok-all':'no-sched-all';
+    const logged=state.loggedTasks.find(l=>l.task===task.name);
+    html+=`<div class="eng-row-card ${cardCls}" style="animation-delay:${i*0.03}s"><div class="eng-row-name" onclick="quickLog('${task.name}','both')"><span>${logged?'✓ ':''}${task.name}</span><span class="eng-row-freq">${task.freq}</span></div><div class="eng-row-cols"><div class="eng-col port"><div class="eng-col-header">⬅ PORT</div><div class="eng-status-pill ${ps.cls}">${ps.icon} ${ps.detail}</div><div class="eng-col-detail">Last: ${task.port.lastDate}</div></div><div class="eng-col stbd"><div class="eng-col-header">STBD ➡</div><div class="eng-status-pill ${ss.cls}">${ss.icon} ${ss.detail}</div><div class="eng-col-detail">Last: ${task.stbd.lastDate}</div></div></div>${task.notes?`<div class="eng-row-note">💬 ${task.notes}</div>`:''}</div>`;
+  });
+  document.getElementById('engineTaskList').innerHTML=html;
+}
+
+function renderLog() {
+  const all=[...maintenanceLog,...state.loggedTasks.map(l=>({date:l.date,task:l.task,engine:l.engines.join('+'),notes:l.notes,tech:l.tech,photos:l.photos||[]}))].reverse();
+  document.getElementById('logBadge').textContent=`${all.length} entries`;
+  if(!all.length){document.getElementById('logList').innerHTML=`<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No log entries yet.<br>Tap ＋ to record maintenance.</div></div>`;return;}
+  let html='';
+  all.forEach((entry,idx)=>{
+    const eng=entry.engine==='general'?'general':entry.engine==='both'?'port+stbd':entry.engine;
+    const tagCls=eng.includes('port')&&eng.includes('stbd')?'tag-port':eng.includes('port')?'tag-port':eng.includes('stbd')?'tag-stbd':'tag-gen';
+    const photos=entry.photos||[];
+    let photoHtml='';
+    if(photos.length){photoHtml=`<div class="log-photo-strip">`;photos.forEach((p,pi)=>{photoHtml+=`<img class="log-photo-thumb" src="${p.dataUrl}" onclick="openViewer(${idx},${pi},event)">`});photoHtml+=`</div>`;}
+    html+=`<div class="log-entry"><div class="log-entry-header"><div class="log-entry-task">${entry.task}</div><div class="log-entry-date">${entry.date}</div></div><div class="log-entry-meta"><span class="log-entry-tag ${tagCls}">${eng.toUpperCase()}</span>${entry.notes?entry.notes:''}${entry.tech?`<br>👤 ${entry.tech}`:''}${photos.length?`<span class="photo-count-badge">📷 ${photos.length}</span>`:''}</div>${photoHtml}</div>`;
+  });
+  document.getElementById('logList').innerHTML=html;
+  window._logEntries=all;
+}
+
+function renderInventory() {
+  let html='';
+  inventory.forEach(item=>{
+    const sc=item.stock===null?'none':item.stock===0?'low':'ok';
+    const sl=item.stock===null?'NO DATA':item.stock===0?'OUT OF STOCK':`${item.stock} in stock`;
+    html+=`<div class="inv-card"><div class="inv-card-header"><div><div class="inv-cat">${item.cat}</div><div class="inv-name">${item.name}</div></div><div class="inv-stock ${sc}">${sl}</div></div><div class="inv-meta">${item.partNum?`🔩 ${item.partNum}<br>`:''}${item.vendor?`🏪 ${item.vendor}`:''}${item.cost?` · $${item.cost.toFixed(2)}`:''}</div></div>`;
+  });
+  document.getElementById('inventoryList').innerHTML=html;
+}
+
+function renderExport() {
+  if(!state.loggedTasks.length){document.getElementById('exportText').textContent='Log tasks first to generate export summary.';document.getElementById('sessionSummary').textContent='No tasks logged yet.';return;}
+  const lines=[`UPDATE: ${formatDate(new Date())}`,`Port Engine: ${state.portHrs} hrs | Stbd Engine: ${state.stbdHrs} hrs`,'','COMPLETED TASKS:'];
+  state.loggedTasks.forEach(t=>{
+    let line=`• ${t.task}`;
+    if(t.engines&&t.engines.length)line+=` [${t.engines.join('+')}]`;
+    if(t.hours)line+=` @ ${t.hours} hrs`;
+    if(t.notes)line+=` — ${t.notes}`;
+    if(t.cost)line+=` (${t.cost})`;
+    if(t.tech)line+=` by ${t.tech}`;
+    lines.push(line);
+  });
+  const sc=state.loggedTasks.filter(t=>t.stockChange);
+  if(sc.length){lines.push('','STOCK UPDATES:');sc.forEach(t=>{const s=t.stockChange;lines.push(`• ${s.partName}: ${s.delta>0?'+':''}${s.delta} → now ${s.newStock} in stock`);});}
+  lines.push('','Please update the spreadsheet with these entries.');
+  document.getElementById('exportText').textContent=lines.join('\n');
+  document.getElementById('sessionSummary').textContent=state.loggedTasks.map(t=>`${t.task} — ${t.date}`).join('\n');
+}
+
+function showTab(tab) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  const idx=['dashboard','engine','log','inventory','export'].indexOf(tab);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  document.querySelectorAll('.nav-item')[idx].classList.add('active');
+  if(tab==='log')renderLog();
+  if(tab==='export')renderExport();
+}
+
+function updateHours() {
+  state.portHrs=parseInt(document.getElementById('portHrs').value)||0;
+  state.stbdHrs=parseInt(document.getElementById('stbdHrs').value)||0;
+  document.getElementById('portHrsDisplay').textContent=state.portHrs+' hrs';
+  document.getElementById('stbdHrsDisplay').textContent=state.stbdHrs+' hrs';
+  renderDashboard(); renderEngineList();
+}
+
+function openLogForm(taskName,engine) {
+  const allNames=[...new Set([...engineTasks.map(t=>t.name),...scheduledTasks.map(t=>t.name)])];
+  document.getElementById('taskSuggestions').innerHTML=allNames.map(n=>`<option value="${n}">`).join('');
+  if(taskName){
+    document.getElementById('fTask').value=taskName;
+    document.getElementById('logFormTitle').textContent=taskName;
+    document.querySelectorAll('.engine-chip').forEach(c=>{c.classList.toggle('selected',engine==='both'?(c.dataset.eng==='port'||c.dataset.eng==='stbd'):c.dataset.eng===engine);});
+    const task=engineTasks.find(t=>t.name===taskName);
+    if(task&&task.port.nextHrs)document.getElementById('fHours').value=task.port.nextHrs;
+  } else {
+    document.getElementById('fTask').value='';
+    document.getElementById('logFormTitle').textContent='Log Maintenance Task';
+    document.getElementById('fHours').value='';
+    document.querySelectorAll('.engine-chip').forEach(c=>{c.classList.toggle('selected',c.dataset.eng==='port'||c.dataset.eng==='stbd');});
+  }
+  const d=new Date();
+  document.getElementById('fDate').value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  document.getElementById('fNotes').value='';document.getElementById('fCost').value='';document.getElementById('fTech').value='';
+  resetStockPanel(); pendingPhotos=[]; document.getElementById('photoPreviews').innerHTML=''; document.getElementById('fPhotos').value='';
+  document.getElementById('logOverlay').classList.add('open');
+}
+
+function resetStockPanel() {
+  pendingStock={partId:null,partName:null,delta:0,originalStock:null};
+  document.getElementById('stockPanel').classList.remove('open');
+  document.getElementById('stockArrow').classList.remove('open');
+  document.getElementById('fStockPart').value='';
+  document.getElementById('stockCurrentDisplay').textContent='—';
+  document.getElementById('stockChangeLabel').textContent='';
+  document.getElementById('stockToggleLabel').innerHTML='Tap to add or remove parts from inventory';
+}
+
+function quickLog(taskName,engine) {
+  if(state.loggedTasks.find(l=>l.task===taskName)){showToast(`${taskName} already logged ✓`);return;}
+  openLogForm(taskName,engine);
+}
+
+function closeLogForm() {
+  document.getElementById('logOverlay').classList.remove('open');
+  pendingPhotos=[];document.getElementById('photoPreviews').innerHTML='';document.getElementById('fPhotos').value='';
+  resetStockPanel();
+}
+
+function toggleStockPanel() {
+  const panel=document.getElementById('stockPanel'),arrow=document.getElementById('stockArrow'),isOpen=panel.classList.contains('open');
+  panel.classList.toggle('open',!isOpen);arrow.classList.toggle('open',!isOpen);
+  if(!isOpen){document.getElementById('fStockPart').innerHTML='<option value="">— Select a part —</option>'+inventory.map(i=>`<option value="${i.id}">${i.name} (${i.stock!==null?i.stock+' in stock':'NO DATA'})</option>`).join('');}
+}
+
+function onStockPartChange() {
+  const id=document.getElementById('fStockPart').value;
+  if(!id){resetStockPanel();return;}
+  const part=inventory.find(i=>i.id===id);if(!part)return;
+  pendingStock={partId:id,partName:part.name,delta:0,originalStock:part.stock||0};
+  document.getElementById('stockCurrentDisplay').textContent=part.stock!==null?part.stock:0;
+  document.getElementById('stockChangeLabel').textContent='';
+  document.getElementById('stockToggleLabel').innerHTML=`<span>${part.name}</span>`;
+}
+
+function adjustStock(dir) {
+  if(!pendingStock.partId){showToast('Select a part first');return;}
+  pendingStock.delta+=dir;
+  const nv=Math.max(0,(pendingStock.originalStock||0)+pendingStock.delta);
+  document.getElementById('stockCurrentDisplay').textContent=nv;
+  const lbl=document.getElementById('stockChangeLabel');
+  if(pendingStock.delta>0){lbl.textContent=`+${pendingStock.delta} added`;lbl.className='stock-adj-change adding';}
+  else if(pendingStock.delta<0){lbl.textContent=`${pendingStock.delta} removed`;lbl.className='stock-adj-change removing';}
+  else{lbl.textContent='No change';lbl.className='stock-adj-change';}
+}
+
+function overlayClick(e){if(e.target===document.getElementById('logOverlay'))closeLogForm();}
+function toggleChip(el){el.classList.toggle('selected');}
+
+function submitLog() {
+  const task=document.getElementById('fTask').value.trim(),dateV=document.getElementById('fDate').value,hrs=document.getElementById('fHours').value,notes=document.getElementById('fNotes').value.trim(),cost=document.getElementById('fCost').value.trim(),tech=document.getElementById('fTech').value.trim();
+  if(!task){showToast('Please enter a task name');return;}
+  if(!dateV){showToast('Please select a date');return;}
+  const selectedEngines=[...document.querySelectorAll('.engine-chip.selected')].map(c=>c.dataset.eng);
+  if(!selectedEngines.length){showToast('Select at least one engine/system');return;}
+  const dateStr=formatDate(new Date(dateV));
+  let stockChange=null;
+  if(pendingStock.partId&&pendingStock.delta!==0){const part=inventory.find(i=>i.id===pendingStock.partId);if(part){const old=part.stock||0;part.stock=Math.max(0,old+pendingStock.delta);stockChange={partId:pendingStock.partId,partName:pendingStock.partName,delta:pendingStock.delta,newStock:part.stock};}}
+  state.loggedTasks.push({task,date:dateStr,engines:selectedEngines,hours:hrs?parseInt(hrs):null,notes,cost,tech,photos:[...pendingPhotos],stockChange});
+  if(hrs){if(selectedEngines.includes('port')){state.portHrs=Math.max(state.portHrs,parseInt(hrs));document.getElementById('portHrs').value=state.portHrs;}if(selectedEngines.includes('stbd')){state.stbdHrs=Math.max(state.stbdHrs,parseInt(hrs));document.getElementById('stbdHrs').value=state.stbdHrs;}}
+  selectedEngines.forEach(eng=>{if(eng==='port'||eng==='stbd'){const tsk=engineTasks.find(t=>t.name===task);if(tsk){tsk[eng].lastDate=dateStr;if(hrs)tsk[eng].lastHrs=parseInt(hrs);}}});
+  closeLogForm();
+  showToast(`✓ ${task} logged${stockChange?` · ${stockChange.partName} → ${stockChange.newStock} in stock`:''}`);
+  renderAll();
+}
+
+function copyExport() {
+  const text=document.getElementById('exportText').textContent;
+  if(!state.loggedTasks.length){showToast('Log tasks first');return;}
+  navigator.clipboard.writeText(text).then(()=>{const btn=document.getElementById('copyBtn');btn.textContent='✓ Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copy to Clipboard';btn.classList.remove('copied');},2500);}).catch(()=>{const el=document.createElement('textarea');el.value=text;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);showToast('Copied!');});
+}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function formatDate(d){const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return `${String(d.getDate()).padStart(2,'0')}-${m[d.getMonth()]}-${d.getFullYear()}`;}
+
+function handlePhotoSelect(event) {
+  Array.from(event.target.files).forEach(file=>{if(!file.type.startsWith('image/'))return;const r=new FileReader();r.onload=e=>{pendingPhotos.push({dataUrl:e.target.result,name:file.name});renderPhotoPreviews();};r.readAsDataURL(file);});event.target.value='';
+}
+function renderPhotoPreviews() {
+  let html='';pendingPhotos.forEach((p,i)=>{html+=`<div class="photo-thumb-wrap"><img src="${p.dataUrl}" onclick="openPendingViewer(${i})"><button class="photo-thumb-del" onclick="removePhoto(${i})">✕</button></div>`;});
+  document.getElementById('photoPreviews').innerHTML=html;
+  const lbl=document.querySelector('.photo-upload-label');lbl.innerHTML=pendingPhotos.length?`<span>${pendingPhotos.length} photo${pendingPhotos.length>1?'s':''} added</span> · tap to add more`:`Tap to take photo or <span>choose from library</span>`;
+}
+function removePhoto(idx){pendingPhotos.splice(idx,1);renderPhotoPreviews();}
+
+let viewerPhotos=[],viewerIdx=0;
+function openViewer(ei,pi,event){event&&event.stopPropagation();const e=(window._logEntries||[])[ei];if(!e||!e.photos||!e.photos.length)return;viewerPhotos=e.photos;viewerIdx=pi;showViewerAt(pi);document.getElementById('photoViewer').classList.add('open');}
+function openPendingViewer(idx){viewerPhotos=pendingPhotos;viewerIdx=idx;showViewerAt(idx);document.getElementById('photoViewer').classList.add('open');}
+function showViewerAt(idx){viewerIdx=Math.max(0,Math.min(idx,viewerPhotos.length-1));document.getElementById('viewerImg').src=viewerPhotos[viewerIdx].dataUrl;document.getElementById('viewerTitle').textContent=`Photo ${viewerIdx+1} of ${viewerPhotos.length}`;let dots='';viewerPhotos.forEach((_,i)=>{dots+=`<div class="photo-nav-dot ${i===viewerIdx?'active':''}" onclick="showViewerAt(${i})"></div>`;});document.getElementById('viewerDots').innerHTML=dots;document.getElementById('arrowPrev').style.visibility=viewerIdx>0?'visible':'hidden';document.getElementById('arrowNext').style.visibility=viewerIdx<viewerPhotos.length-1?'visible':'hidden';}
+function viewerNav(dir){showViewerAt(viewerIdx+dir);}
+function closeViewer(){document.getElementById('photoViewer').classList.remove('open');}
+
+let touchStartX=0;
+document.addEventListener('touchstart',e=>{if(document.getElementById('photoViewer').classList.contains('open'))touchStartX=e.touches[0].clientX;});
+document.addEventListener('touchend',e=>{if(!document.getElementById('photoViewer').classList.contains('open'))return;const diff=touchStartX-e.changedTouches[0].clientX;if(Math.abs(diff)>50)viewerNav(diff>0?1:-1);});
+
+function init() {
+  const now=new Date(),days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('headerDate').textContent=`${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById('portHrs').value=state.portHrs;
+  document.getElementById('stbdHrs').value=state.stbdHrs;
+  renderAll();
+}
+init();
+</script>
+</body>
+</html>
