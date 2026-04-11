@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Vessel Log — Boat Setup Form</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f4f6f9; color: #1a2a3a; min-height: 100vh; }
+
+  .header { background: #0d1f3c; padding: 28px 24px; text-align: center; }
+  .header-anchor { font-size: 32px; margin-bottom: 8px; }
+  .header h1 { font-size: 22px; font-weight: 700; color: #e8b84b; letter-spacing: 0.04em; }
+  .header p { font-size: 14px; color: #7dd4e8; margin-top: 4px; }
+
+  .container { max-width: 640px; margin: 0 auto; padding: 24px 16px 60px; }
+
+  .intro-card { background: #e8f4fb; border: 1px solid #b5d4f4; border-radius: 12px; padding: 16px 18px; margin-bottom: 24px; font-size: 14px; line-height: 1.6; color: #1a3560; }
+  .intro-card strong { display: block; font-size: 15px; margin-bottom: 4px; color: #0d1f3c; }
+
+  .section { background: #fff; border: 1px solid #e0e4ea; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .section-title { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #4db8d4; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #f0f2f5; }
+
+  .form-row { margin-bottom: 16px; }
+  .form-row:last-child { margin-bottom: 0; }
+  label { display: block; font-size: 13px; font-weight: 600; color: #2a3f55; margin-bottom: 6px; }
+  .required { color: #e05252; margin-left: 2px; }
+  input[type=text], input[type=email], input[type=number], select, textarea {
+    width: 100%; padding: 10px 13px; border: 1px solid #d0d8e4; border-radius: 8px;
+    font-size: 14px; font-family: inherit; color: #1a2a3a; background: #fff;
+    outline: none; transition: border-color 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: #4db8d4; box-shadow: 0 0 0 3px rgba(77,184,212,0.1); }
+  input::placeholder, textarea::placeholder { color: #aab4c0; }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+  select { -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234db8d4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 13px center; padding-right: 36px; }
+
+  .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  @media (max-width: 480px) { .form-row-2 { grid-template-columns: 1fr; } }
+
+  .radio-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
+  .radio-option { display: flex; align-items: center; gap: 7px; cursor: pointer; padding: 8px 14px; border: 1px solid #d0d8e4; border-radius: 20px; font-size: 13px; font-weight: 600; color: #4a5a6a; transition: all 0.15s; }
+  .radio-option input[type=radio] { display: none; }
+  .radio-option.selected { background: #0d1f3c; border-color: #0d1f3c; color: #4db8d4; }
+
+  .engine-section { display: none; }
+  .engine-section.visible { display: block; }
+
+  .hint { font-size: 12px; color: #7a8a9a; margin-top: 4px; line-height: 1.4; }
+
+  .task-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+  .task-table th { background: #f4f6f9; padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #6a7a8a; border: 1px solid #e8ecf0; }
+  .task-table td { padding: 8px 10px; border: 1px solid #e8ecf0; vertical-align: middle; }
+  .task-table tr:nth-child(even) td { background: #fafbfc; }
+  .task-table input[type=text], .task-table input[type=number] { border: none; background: transparent; padding: 2px 4px; font-size: 13px; width: 100%; outline: none; }
+  .task-table input:focus { background: #f0f8ff; border-radius: 4px; }
+
+  .add-row-btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 7px 14px; background: none; border: 1px dashed #4db8d4; border-radius: 8px; color: #4db8d4; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .add-row-btn:hover { background: rgba(77,184,212,0.08); }
+
+  .submit-section { text-align: center; margin-top: 28px; }
+  .submit-btn { display: inline-block; padding: 15px 48px; background: linear-gradient(135deg, #c8922a, #e8b84b); border: none; border-radius: 12px; color: #0d1f3c; font-size: 16px; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; transition: opacity 0.2s; width: 100%; max-width: 360px; }
+  .submit-btn:active { opacity: 0.85; }
+  .submit-note { font-size: 12px; color: #7a8a9a; margin-top: 10px; line-height: 1.5; }
+
+  .success-msg { display: none; background: #d5f5e3; border: 1px solid #3dba7e; border-radius: 12px; padding: 20px; text-align: center; margin-top: 20px; }
+  .success-msg h3 { color: #1e8449; font-size: 18px; margin-bottom: 8px; }
+  .success-msg p { font-size: 14px; color: #2a5a3a; line-height: 1.6; }
+
+  .progress-bar { display: flex; gap: 6px; margin-bottom: 24px; }
+  .progress-step { flex: 1; height: 4px; border-radius: 2px; background: #e0e4ea; }
+  .progress-step.done { background: #4db8d4; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-anchor">⚓</div>
+  <h1>MY VESSEL LOG</h1>
+  <p>Boat Setup Form — tell us about your vessel</p>
+</div>
+
+<div class="container">
+
+  <div class="intro-card">
+    <strong>Thanks for choosing My Vessel Log!</strong>
+    Fill in the details below and we'll build your personalised maintenance app and spreadsheet. The more detail you provide, the better your app will be. Takes about 5 minutes.
+  </div>
+
+  <!-- SECTION 1 — Your Details -->
+  <div class="section">
+    <div class="section-title">Your Details</div>
+    <div class="form-row">
+      <label>Full Name <span class="required">*</span></label>
+      <input type="text" id="ownerName" placeholder="e.g. John Smith">
+    </div>
+    <div class="form-row">
+      <label>Email Address <span class="required">*</span></label>
+      <input type="email" id="ownerEmail" placeholder="e.g. john@email.com">
+      <div class="hint">We'll send your completed app to this address.</div>
+    </div>
+    <div class="form-row">
+      <label>Country / Region</label>
+      <input type="text" id="ownerCountry" placeholder="e.g. New Zealand, Australia, USA">
+    </div>
+  </div>
+
+  <!-- SECTION 2 — Vessel Details -->
+  <div class="section">
+    <div class="section-title">Vessel Details</div>
+    <div class="form-row">
+      <label>Vessel Name <span class="required">*</span></label>
+      <input type="text" id="vesselName" placeholder="e.g. MV Sea Breeze">
+    </div>
+    <div class="form-row-2">
+      <div class="form-row" style="margin-bottom:0">
+        <label>Make / Builder</label>
+        <input type="text" id="vesselMake" placeholder="e.g. Grand Banks, Hatteras">
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label>Model</label>
+        <input type="text" id="vesselModel" placeholder="e.g. 42 Classic">
+      </div>
+    </div>
+    <div class="form-row-2" style="margin-top:16px">
+      <div class="form-row" style="margin-bottom:0">
+        <label>Year Built</label>
+        <input type="number" id="vesselYear" placeholder="e.g. 1978" min="1900" max="2030">
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label>Length (ft or m)</label>
+        <input type="text" id="vesselLength" placeholder="e.g. 42ft">
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:16px">
+      <label>Vessel Type</label>
+      <select id="vesselType">
+        <option value="">— Select —</option>
+        <option>Trawler / Motor Cruiser</option>
+        <option>Flybridge Cruiser</option>
+        <option>Sports Fisher</option>
+        <option>Sailing Yacht</option>
+        <option>Launch / Runabout</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Home Port / Marina</label>
+      <input type="text" id="homePort" placeholder="e.g. Pine Harbour Marina, Auckland">
+    </div>
+  </div>
+
+  <!-- SECTION 3 — Engine Configuration -->
+  <div class="section">
+    <div class="section-title">Engine Configuration</div>
+    <div class="form-row">
+      <label>Number of Engines <span class="required">*</span></label>
+      <div class="radio-group">
+        <label class="radio-option" id="radio-single" onclick="selectEngines('single')">
+          <input type="radio" name="engines" value="single"> Single Engine
+        </label>
+        <label class="radio-option" id="radio-twin" onclick="selectEngines('twin')">
+          <input type="radio" name="engines" value="twin"> Twin Engine
+        </label>
+      </div>
+    </div>
+
+    <!-- Single engine fields -->
+    <div class="engine-section" id="single-engine-section">
+      <div class="form-row">
+        <label>Engine Make & Model</label>
+        <input type="text" id="eng1Make" placeholder="e.g. Volvo Penta D4, Yanmar 4JH, Ford Lehman 120">
+      </div>
+      <div class="form-row-2">
+        <div class="form-row" style="margin-bottom:0">
+          <label>Current Engine Hours <span class="required">*</span></label>
+          <input type="number" id="eng1Hrs" placeholder="e.g. 850" min="0">
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>Oil Service Interval (hrs)</label>
+          <input type="number" id="eng1OilInterval" placeholder="e.g. 250" min="0">
+          <div class="hint">Check your engine manual</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Twin engine fields -->
+    <div class="engine-section" id="twin-engine-section">
+      <div class="form-row">
+        <label>Engine Make & Model</label>
+        <input type="text" id="eng2Make" placeholder="e.g. Ford Lehman 120, Cummins 6BTA">
+        <div class="hint">If both engines are identical, just enter once</div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-row" style="margin-bottom:0">
+          <label>Port Engine Hours <span class="required">*</span></label>
+          <input type="number" id="eng2PortHrs" placeholder="e.g. 349" min="0">
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>Stbd Engine Hours <span class="required">*</span></label>
+          <input type="number" id="eng2StbdHrs" placeholder="e.g. 354" min="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Oil Service Interval (hrs)</label>
+        <input type="number" id="eng2OilInterval" placeholder="e.g. 200" min="0">
+        <div class="hint">Check your engine manual — e.g. Ford Lehman = 200 hrs</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4 — Known Maintenance History -->
+  <div class="section">
+    <div class="section-title">Known Maintenance History</div>
+    <div class="hint" style="margin-bottom:12px; font-size:13px;">Tell us the last time key services were done. Leave blank if unknown — we'll mark them as "date unknown" in your app.</div>
+    <table class="task-table" id="historyTable">
+      <thead>
+        <tr>
+          <th style="width:40%">Task</th>
+          <th style="width:30%">Date last done</th>
+          <th style="width:30%">At hours (if known)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Engine Oil &amp; Filters</td><td><input type="text" placeholder="e.g. Jan-2025"></td><td><input type="number" placeholder="e.g. 200"></td></tr>
+        <tr><td>Primary Fuel Filter</td><td><input type="text" placeholder="e.g. Jan-2025"></td><td><input type="number" placeholder=""></td></tr>
+        <tr><td>Secondary Fuel Filter</td><td><input type="text" placeholder="e.g. Jan-2025"></td><td><input type="number" placeholder=""></td></tr>
+        <tr><td>Raw Water Impeller</td><td><input type="text" placeholder="e.g. Oct-2024"></td><td><input type="number" placeholder=""></td></tr>
+        <tr><td>Coolant</td><td><input type="text" placeholder="e.g. 2023"></td><td><input type="number" placeholder=""></td></tr>
+        <tr><td>Transmission Oil</td><td><input type="text" placeholder=""></td><td><input type="number" placeholder=""></td></tr>
+        <tr><td>Zinc Pencils / Anodes</td><td><input type="text" placeholder=""></td><td><input type="number" placeholder=""></td></tr>
+        <tr><td>Antifouling</td><td><input type="text" placeholder="e.g. Oct-2024"></td><td><input type="number" placeholder=""></td></tr>
+        <tr><td>Drive Belts</td><td><input type="text" placeholder=""></td><td><input type="number" placeholder=""></td></tr>
+        <tr><td>Heat Exchangers</td><td><input type="text" placeholder=""></td><td><input type="number" placeholder=""></td></tr>
+      </tbody>
+    </table>
+    <button class="add-row-btn" onclick="addHistoryRow()">＋ Add another task</button>
+  </div>
+
+  <!-- SECTION 5 — Parts Inventory -->
+  <div class="section">
+    <div class="section-title">Spare Parts on Board</div>
+    <div class="hint" style="margin-bottom:12px; font-size:13px;">List any spare parts you keep on the boat — we'll load these into your Parts Inventory tab.</div>
+    <table class="task-table" id="partsTable">
+      <thead>
+        <tr>
+          <th style="width:35%">Part name</th>
+          <th style="width:25%">Part number</th>
+          <th style="width:20%">Qty in stock</th>
+          <th style="width:20%">Supplier</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><input type="text" placeholder="e.g. Oil Filter"></td><td><input type="text" placeholder="e.g. Z9 Ryco"></td><td><input type="number" placeholder="2" min="0"></td><td><input type="text" placeholder="e.g. Autoignite"></td></tr>
+        <tr><td><input type="text" placeholder="e.g. Impeller"></td><td><input type="text" placeholder=""></td><td><input type="number" placeholder="" min="0"></td><td><input type="text" placeholder=""></td></tr>
+        <tr><td><input type="text" placeholder="e.g. Fuel Filter"></td><td><input type="text" placeholder=""></td><td><input type="number" placeholder="" min="0"></td><td><input type="text" placeholder=""></td></tr>
+      </tbody>
+    </table>
+    <button class="add-row-btn" onclick="addPartsRow()">＋ Add another part</button>
+  </div>
+
+  <!-- SECTION 6 — Additional Notes -->
+  <div class="section">
+    <div class="section-title">Anything Else?</div>
+    <div class="form-row">
+      <label>Additional notes or requests</label>
+      <textarea id="additionalNotes" placeholder="e.g. I have a generator on board, I'd like to track that too. Or: my boat only has one engine. Or: I use the boat mainly in saltwater."></textarea>
+    </div>
+    <div class="form-row">
+      <label>How did you hear about My Vessel Log?</label>
+      <select id="hearAbout">
+        <option value="">— Select —</option>
+        <option>Friend / word of mouth</option>
+        <option>Facebook group</option>
+        <option>Trawler forum / online community</option>
+        <option>Marina / chandlery</option>
+        <option>Other</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="submit-section">
+    <button class="submit-btn" onclick="submitForm()">⚓ Submit My Boat Details</button>
+    <div class="submit-note">Your personalised app and spreadsheet will be sent to your email within 2–3 business days.</div>
+  </div>
+
+  <div class="success-msg" id="successMsg">
+    <h3>✓ Details received!</h3>
+    <p>Thanks — we'll build your personalised Vessel Log app and send it to your email within 2–3 business days.<br><br>If you have any questions in the meantime, just reply to your confirmation email.</p>
+  </div>
+
+</div>
+
+<script>
+function selectEngines(type) {
+  document.getElementById('radio-single').classList.toggle('selected', type==='single');
+  document.getElementById('radio-twin').classList.toggle('selected', type==='twin');
+  document.getElementById('single-engine-section').classList.toggle('visible', type==='single');
+  document.getElementById('twin-engine-section').classList.toggle('visible', type==='twin');
+}
+
+function addHistoryRow() {
+  const tbody = document.querySelector('#historyTable tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><input type="text" placeholder="Task name"></td><td><input type="text" placeholder="e.g. Jan-2025"></td><td><input type="number" placeholder=""></td>`;
+  tbody.appendChild(tr);
+}
+
+function addPartsRow() {
+  const tbody = document.querySelector('#partsTable tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><input type="text" placeholder="Part name"></td><td><input type="text" placeholder="Part number"></td><td><input type="number" placeholder="" min="0"></td><td><input type="text" placeholder="Supplier"></td>`;
+  tbody.appendChild(tr);
+}
+
+function submitForm() {
+  const name = document.getElementById('ownerName').value.trim();
+  const email = document.getElementById('ownerEmail').value.trim();
+  const vessel = document.getElementById('vesselName').value.trim();
+  const engSelected = document.querySelector('input[name=engines]:checked');
+
+  if (!name) { alert('Please enter your name.'); return; }
+  if (!email || !email.includes('@')) { alert('Please enter a valid email address.'); return; }
+  if (!vessel) { alert('Please enter your vessel name.'); return; }
+  if (!engSelected) { alert('Please select single or twin engine.'); return; }
+
+  // In production this would POST to a backend / Google Forms endpoint
+  // For now, build a mailto summary
+  const engType = engSelected.value;
+  let engInfo = '';
+  if (engType === 'single') {
+    engInfo = `Engine: ${document.getElementById('eng1Make').value || 'Not specified'}, Hours: ${document.getElementById('eng1Hrs').value || '?'}`;
+  } else {
+    engInfo = `Engine: ${document.getElementById('eng2Make').value || 'Not specified'}, Port: ${document.getElementById('eng2PortHrs').value || '?'} hrs, Stbd: ${document.getElementById('eng2StbdHrs').value || '?'} hrs`;
+  }
+
+  const subject = encodeURIComponent(`My Vessel Log — New Order: ${vessel} (${name})`);
+  const body = encodeURIComponent(
+    `NEW VESSEL LOG ORDER\n\n` +
+    `Owner: ${name}\nEmail: ${email}\nCountry: ${document.getElementById('ownerCountry').value || '—'}\n\n` +
+    `VESSEL\nName: ${vessel}\nMake: ${document.getElementById('vesselMake').value || '—'}\nModel: ${document.getElementById('vesselModel').value || '—'}\nYear: ${document.getElementById('vesselYear').value || '—'}\nLength: ${document.getElementById('vesselLength').value || '—'}\nType: ${document.getElementById('vesselType').value || '—'}\nHome Port: ${document.getElementById('homePort').value || '—'}\n\n` +
+    `ENGINES (${engType})\n${engInfo}\n\n` +
+    `NOTES\n${document.getElementById('additionalNotes').value || 'None'}\n\nHeard about us: ${document.getElementById('hearAbout').value || '—'}`
+  );
+
+  window.location.href = `mailto:mikesmillie59@gmail.com?subject=${subject}&body=${body}`;
+
+  document.querySelector('.submit-btn').style.display = 'none';
+  document.querySelector('.submit-note').style.display = 'none';
+  document.getElementById('successMsg').style.display = 'block';
+  window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+}
+</script>
+</body>
+</html>
