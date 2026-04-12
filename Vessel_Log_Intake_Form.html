@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Vessel Log — Boat Setup Form</title>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>emailjs.init('GY4e_uE9KvDgmxFOJ');</script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f4f6f9; color: #1a2a3a; min-height: 100vh; }
@@ -314,41 +316,90 @@ function addPartsRow() {
 }
 
 function submitForm() {
-  const name = document.getElementById('ownerName').value.trim();
-  const email = document.getElementById('ownerEmail').value.trim();
-  const vessel = document.getElementById('vesselName').value.trim();
+  const name    = document.getElementById('ownerName').value.trim();
+  const email   = document.getElementById('ownerEmail').value.trim();
+  const vessel  = document.getElementById('vesselName').value.trim();
   const engSelected = document.querySelector('input[name=engines]:checked');
 
-  if (!name) { alert('Please enter your name.'); return; }
+  if (!name)   { alert('Please enter your name.'); return; }
   if (!email || !email.includes('@')) { alert('Please enter a valid email address.'); return; }
   if (!vessel) { alert('Please enter your vessel name.'); return; }
   if (!engSelected) { alert('Please select single or twin engine.'); return; }
 
-  // In production this would POST to a backend / Google Forms endpoint
-  // For now, build a mailto summary
   const engType = engSelected.value;
-  let engInfo = '';
+  let engineMake = '', portHours = '', stbdHours = '', oilInterval = '';
   if (engType === 'single') {
-    engInfo = `Engine: ${document.getElementById('eng1Make').value || 'Not specified'}, Hours: ${document.getElementById('eng1Hrs').value || '?'}`;
+    engineMake  = document.getElementById('eng1Make').value || '—';
+    portHours   = document.getElementById('eng1Hrs').value || '—';
+    stbdHours   = 'N/A';
+    oilInterval = document.getElementById('eng1OilInterval').value || '—';
   } else {
-    engInfo = `Engine: ${document.getElementById('eng2Make').value || 'Not specified'}, Port: ${document.getElementById('eng2PortHrs').value || '?'} hrs, Stbd: ${document.getElementById('eng2StbdHrs').value || '?'} hrs`;
+    engineMake  = document.getElementById('eng2Make').value || '—';
+    portHours   = document.getElementById('eng2PortHrs').value || '—';
+    stbdHours   = document.getElementById('eng2StbdHrs').value || '—';
+    oilInterval = document.getElementById('eng2OilInterval').value || '—';
   }
 
-  const subject = encodeURIComponent(`My Vessel Log — New Order: ${vessel} (${name})`);
-  const body = encodeURIComponent(
-    `NEW VESSEL LOG ORDER\n\n` +
-    `Owner: ${name}\nEmail: ${email}\nCountry: ${document.getElementById('ownerCountry').value || '—'}\n\n` +
-    `VESSEL\nName: ${vessel}\nMake: ${document.getElementById('vesselMake').value || '—'}\nModel: ${document.getElementById('vesselModel').value || '—'}\nYear: ${document.getElementById('vesselYear').value || '—'}\nLength: ${document.getElementById('vesselLength').value || '—'}\nType: ${document.getElementById('vesselType').value || '—'}\nHome Port: ${document.getElementById('homePort').value || '—'}\n\n` +
-    `ENGINES (${engType})\n${engInfo}\n\n` +
-    `NOTES\n${document.getElementById('additionalNotes').value || 'None'}\n\nHeard about us: ${document.getElementById('hearAbout').value || '—'}`
-  );
+  // Build maintenance history summary
+  const histRows = document.querySelectorAll('#historyTable tbody tr');
+  let maintHistory = '';
+  histRows.forEach(row => {
+    const cells = row.querySelectorAll('input');
+    const task = cells[0].value.trim();
+    const date = cells[1].value.trim();
+    const hrs  = cells[2].value.trim();
+    if (task) maintHistory += `${task}: ${date || '—'} ${hrs ? '@ ' + hrs + ' hrs' : ''}\n`;
+  });
 
-  window.location.href = `mailto:mikesmillie59@gmail.com?subject=${subject}&body=${body}`;
+  // Build parts summary
+  const partsRows = document.querySelectorAll('#partsTable tbody tr');
+  let partsList = '';
+  partsRows.forEach(row => {
+    const cells = row.querySelectorAll('input');
+    const part = cells[0].value.trim();
+    const pnum = cells[1].value.trim();
+    const qty  = cells[2].value.trim();
+    const sup  = cells[3].value.trim();
+    if (part) partsList += `${part}${pnum ? ' (' + pnum + ')' : ''}: qty ${qty || '?'}${sup ? ', from ' + sup : ''}\n`;
+  });
 
-  document.querySelector('.submit-btn').style.display = 'none';
-  document.querySelector('.submit-note').style.display = 'none';
-  document.getElementById('successMsg').style.display = 'block';
-  window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+  const btn = document.querySelector('.submit-btn');
+  btn.textContent = 'Sending...';
+  btn.disabled = true;
+
+  emailjs.send('service_bj44lwp', 'template_jtv6pu9', {
+    owner_name:          name,
+    owner_email:         email,
+    country:             document.getElementById('ownerCountry').value || '—',
+    vessel_name:         vessel,
+    vessel_make:         document.getElementById('vesselMake').value || '—',
+    vessel_model:        document.getElementById('vesselModel').value || '—',
+    vessel_year:         document.getElementById('vesselYear').value || '—',
+    vessel_length:       document.getElementById('vesselLength').value || '—',
+    vessel_type:         document.getElementById('vesselType').value || '—',
+    home_port:           document.getElementById('homePort').value || '—',
+    engine_config:       engType,
+    engine_make:         engineMake,
+    port_hours:          portHours,
+    stbd_hours:          stbdHours,
+    oil_interval:        oilInterval,
+    maintenance_history: maintHistory || 'None provided',
+    spare_parts:         partsList || 'None provided',
+    additional_notes:    document.getElementById('additionalNotes').value || '—',
+    hear_about:          document.getElementById('hearAbout').value || '—',
+    email:               email,
+    name:                name,
+  }).then(() => {
+    btn.style.display = 'none';
+    document.querySelector('.submit-note').style.display = 'none';
+    document.getElementById('successMsg').style.display = 'block';
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }).catch(err => {
+    btn.textContent = '⚓ Submit My Boat Details';
+    btn.disabled = false;
+    alert('Sorry, there was an error sending your details. Please try again or email mikesmillie59@gmail.com directly.');
+    console.error('EmailJS error:', err);
+  });
 }
 </script>
 </body>
