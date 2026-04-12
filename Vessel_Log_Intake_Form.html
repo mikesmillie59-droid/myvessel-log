@@ -345,9 +345,10 @@ function submitForm() {
   let maintHistory = '';
   histRows.forEach(row => {
     const cells = row.querySelectorAll('input');
+    if (!cells || cells.length < 2) return;
     const task = cells[0].value.trim();
     const date = cells[1].value.trim();
-    const hrs  = cells[2].value.trim();
+    const hrs  = cells[2] ? cells[2].value.trim() : '';
     if (task) maintHistory += `${task}: ${date || '—'} ${hrs ? '@ ' + hrs + ' hrs' : ''}\n`;
   });
 
@@ -356,6 +357,7 @@ function submitForm() {
   let partsList = '';
   partsRows.forEach(row => {
     const cells = row.querySelectorAll('input');
+    if (!cells || cells.length < 4) return;
     const part = cells[0].value.trim();
     const pnum = cells[1].value.trim();
     const qty  = cells[2].value.trim();
