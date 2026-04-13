@@ -1350,9 +1350,20 @@ function submitLog() {
       if (tsk) {
         tsk[eng].lastDate = dateStr;
         if (hrs) tsk[eng].lastHrs = parseInt(hrs);
+        // Recalculate nextDate for date-based tasks
+        if (tsk[eng].nextDate !== null && tsk[eng].nextHrs === null) {
+          tsk[eng].nextDate = calcNextDate(dateStr, tsk.freq);
+        }
       }
     }
   });
+
+  // Also recalculate scheduled tasks
+  const schedTask = scheduledTasks.find(t => t.task === task || t.name === task);
+  if (schedTask && schedTask.nextDate !== null) {
+    schedTask.lastDate = dateStr;
+    schedTask.nextDate = calcNextDate(dateStr, schedTask.interval);
+  }
 
   saveState();
   closeLogForm();
@@ -1384,6 +1395,23 @@ function showToast(msg) {
 function formatDate(d) {
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return `${String(d.getDate()).padStart(2,'0')}-${months[d.getMonth()]}-${d.getFullYear()}`;
+}
+
+function calcNextDate(fromDateStr, freq) {
+  const d = parseDate(fromDateStr);
+  if (!d || !freq) return null;
+  const f = freq.toLowerCase();
+  const nd = new Date(d);
+  if (f.includes('3 month') || f.includes('quarterly')) nd.setMonth(nd.getMonth() + 3);
+  else if (f.includes('6 month') || f.includes('half')) nd.setMonth(nd.getMonth() + 6);
+  else if (f.includes('24 month'))                       nd.setFullYear(nd.getFullYear() + 2);
+  else if (f.includes('2 year'))                         nd.setFullYear(nd.getFullYear() + 2);
+  else if (f.includes('3 year'))                         nd.setFullYear(nd.getFullYear() + 3);
+  else if (f.includes('4 year'))                         nd.setFullYear(nd.getFullYear() + 4);
+  else if (f.includes('5 year'))                         nd.setFullYear(nd.getFullYear() + 5);
+  else if (f.includes('annual') || f.includes('yearly') || f === '1 year') nd.setFullYear(nd.getFullYear() + 1);
+  else return null;
+  return formatDate(nd);
 }
 
 // ═══════════════════════════════════════════════════════════════════
