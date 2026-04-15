@@ -38,6 +38,7 @@
     font-family: 'Archivo', sans-serif;
     background: var(--ocean); color: var(--text);
     min-height: 100vh; overflow-x: hidden; position: relative;
+    padding-top: 36px;
   }
 
   body::before {
@@ -318,6 +319,21 @@
 </style>
 </head>
 <body>
+<div id="demo-banner" style="
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+  background: #C8922A; color: #0B1C2E;
+  text-align: center; padding: 0.5rem 1rem;
+  font-family: Arial, sans-serif; font-size: 0.85rem; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 1rem;
+">
+  <span>⚓ This is a demo — data saves to your browser only and will not persist between devices.</span>
+  <a href="https://mikesmillie59-droid.github.io/myvessel-log/Vessel_Log_Intake_Form.html"
+     style="background: #0B1C2E; color: #C8922A; padding: 0.25rem 0.75rem; border-radius: 3px; text-decoration: none; font-size: 0.8rem; white-space: nowrap;">
+    Order your app →
+  </a>
+  <button onclick="document.getElementById('demo-banner').style.display='none'"
+     style="background: none; border: none; color: #0B1C2E; font-size: 1.1rem; cursor: pointer; padding: 0; line-height: 1;">✕</button>
+</div>
 <div class="app">
 
   <div class="header">
