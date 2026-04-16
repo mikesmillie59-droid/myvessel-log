@@ -548,6 +548,21 @@
     <div class="divider"></div>
     <div class="sec-header">
       <div class="sec-title">Scheduled Maintenance</div>
+      <button class="add-btn" onclick="toggleAddTask()">＋ Add Task</button>
+    </div>
+    <div id="addTaskForm" style="display:none; background:var(--hull); border:1px solid rgba(255,255,255,0.1); border-radius:var(--radius); padding:14px; margin-bottom:12px;">
+      <div class="form-label">Task name *</div>
+      <input class="form-input" id="ntName" placeholder="e.g. Windlass service" style="margin-bottom:8px;">
+      <div class="form-label">Interval</div>
+      <input class="form-input" id="ntInterval" placeholder="e.g. annual, 2 yearly, 3 monthly" style="margin-bottom:8px;">
+      <div class="form-label">Next due date</div>
+      <input class="form-input" id="ntNextDate" type="date" style="margin-bottom:8px;">
+      <div class="form-label">Notes</div>
+      <input class="form-input" id="ntNotes" placeholder="Optional reminder or details" style="margin-bottom:12px;">
+      <div style="display:flex;gap:8px;">
+        <button class="log-submit-btn" onclick="addNewTask()" style="flex:1;">Save Task</button>
+        <button class="log-submit-btn" onclick="toggleAddTask()" style="flex:1;background:var(--hull);border:1px solid rgba(255,255,255,0.2);">Cancel</button>
+      </div>
     </div>
     <div id="dashScheduled"></div>
   </div>
@@ -582,6 +597,25 @@
   <div class="section" id="tab-inventory">
     <div class="sec-header">
       <div class="sec-title">Parts Inventory</div>
+      <button class="add-btn" onclick="toggleAddPart()">＋ Add Part</button>
+    </div>
+    <div id="addPartForm" style="display:none; background:var(--hull); border:1px solid rgba(255,255,255,0.1); border-radius:var(--radius); padding:14px; margin-bottom:12px;">
+      <div class="form-label">Part name *</div>
+      <input class="form-input" id="npName" placeholder="e.g. Fuel Filter" style="margin-bottom:8px;">
+      <div class="form-label">Category</div>
+      <input class="form-input" id="npCat" placeholder="e.g. Fuel, Oil, Cooling" style="margin-bottom:8px;">
+      <div class="form-label">Part number</div>
+      <input class="form-input" id="npPartNum" placeholder="e.g. FF5091" style="margin-bottom:8px;">
+      <div class="form-label">Supplier</div>
+      <input class="form-input" id="npVendor" placeholder="e.g. Fleetguard" style="margin-bottom:8px;">
+      <div class="form-label">Qty in stock</div>
+      <input class="form-input" id="npStock" type="number" min="0" placeholder="0" style="margin-bottom:8px;">
+      <div class="form-label">Notes / alternate part numbers</div>
+      <input class="form-input" id="npNotes" placeholder="e.g. Also fits: FS1212" style="margin-bottom:12px;">
+      <div style="display:flex;gap:8px;">
+        <button class="log-submit-btn" onclick="addNewPart()" style="flex:1;">Save Part</button>
+        <button class="log-submit-btn" onclick="toggleAddPart()" style="flex:1;background:var(--hull);border:1px solid rgba(255,255,255,0.2);">Cancel</button>
+      </div>
     </div>
     <div id="inventoryList"></div>
   </div>
