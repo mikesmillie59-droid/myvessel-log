@@ -108,6 +108,11 @@
   .sec-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; margin-top: 4px; }
   .sec-title { font-family: 'Archivo Black', sans-serif; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
   .sec-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; background: var(--hull); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 2px 8px; color: var(--text-dim); }
+  .add-btn { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: var(--wake); font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; cursor: pointer; transition: background 0.2s; }
+  .add-btn:hover { background: rgba(255,255,255,0.12); }
+  .single-engine .engine-header-pill.stbd,
+  .single-engine .eng-col.stbd { display: none; }
+  .single-engine .eng-col.port { width: 100%; }
 
   /* ── Task card ── */
   .task-card {
@@ -370,7 +375,24 @@
     </div>
     <div id="dashEngineTasks"></div>
     <div class="divider"></div>
-    <div class="sec-header"><div class="sec-title">Scheduled Maintenance</div></div>
+    <div class="sec-header">
+      <div class="sec-title">Scheduled Maintenance</div>
+      <button class="add-btn" onclick="toggleAddTask()">＋ Add Task</button>
+    </div>
+    <div id="addTaskForm" style="display:none; background:var(--hull); border:1px solid rgba(255,255,255,0.1); border-radius:var(--radius); padding:14px; margin-bottom:12px;">
+      <div class="form-label">Task name *</div>
+      <input class="form-input" id="ntName" placeholder="e.g. Windlass service" style="margin-bottom:8px;">
+      <div class="form-label">Interval</div>
+      <input class="form-input" id="ntInterval" placeholder="e.g. annual, 2 yearly, 3 monthly" style="margin-bottom:8px;">
+      <div class="form-label">Next due date</div>
+      <input class="form-input" id="ntNextDate" type="date" style="margin-bottom:8px;">
+      <div class="form-label">Notes</div>
+      <input class="form-input" id="ntNotes" placeholder="Optional reminder or details" style="margin-bottom:12px;">
+      <div style="display:flex;gap:8px;">
+        <button class="log-submit-btn" onclick="addNewTask()" style="flex:1;">Save Task</button>
+        <button class="log-submit-btn" onclick="toggleAddTask()" style="flex:1;background:var(--hull);border:1px solid rgba(255,255,255,0.2);">Cancel</button>
+      </div>
+    </div>
     <div id="dashScheduled"></div>
   </div>
 
@@ -402,7 +424,28 @@
 
   <!-- INVENTORY -->
   <div class="section" id="tab-inventory">
-    <div class="sec-header"><div class="sec-title">Parts Inventory</div></div>
+    <div class="sec-header">
+      <div class="sec-title">Parts Inventory</div>
+      <button class="add-btn" onclick="toggleAddPart()">＋ Add Part</button>
+    </div>
+    <div id="addPartForm" style="display:none; background:var(--hull); border:1px solid rgba(255,255,255,0.1); border-radius:var(--radius); padding:14px; margin-bottom:12px;">
+      <div class="form-label">Part name *</div>
+      <input class="form-input" id="npName" placeholder="e.g. Fuel Filter" style="margin-bottom:8px;">
+      <div class="form-label">Category</div>
+      <input class="form-input" id="npCat" placeholder="e.g. Fuel, Oil, Cooling" style="margin-bottom:8px;">
+      <div class="form-label">Part number</div>
+      <input class="form-input" id="npPartNum" placeholder="e.g. FF5091" style="margin-bottom:8px;">
+      <div class="form-label">Supplier</div>
+      <input class="form-input" id="npVendor" placeholder="e.g. Fleetguard" style="margin-bottom:8px;">
+      <div class="form-label">Qty in stock</div>
+      <input class="form-input" id="npStock" type="number" min="0" placeholder="0" style="margin-bottom:8px;">
+      <div class="form-label">Notes / alternate part numbers</div>
+      <input class="form-input" id="npNotes" placeholder="e.g. Also fits: FS1212" style="margin-bottom:12px;">
+      <div style="display:flex;gap:8px;">
+        <button class="log-submit-btn" onclick="addNewPart()" style="flex:1;">Save Part</button>
+        <button class="log-submit-btn" onclick="toggleAddPart()" style="flex:1;background:var(--hull);border:1px solid rgba(255,255,255,0.2);">Cancel</button>
+      </div>
+    </div>
     <div id="inventoryList"></div>
   </div>
 
@@ -543,6 +586,7 @@
 
 const VESSEL_NAME  = "MV Sea Breeze";       // Boat name
 const VESSEL_TYPE  = "1988 Marinette 32";   // Make / model / year
+const ENGINE_CONFIG = "twin";               // "twin" or "single"
 const PORT_HOURS   = 142;                   // Current port engine hours
 const STBD_HOURS   = 148;                   // Current stbd engine hours
 
@@ -575,12 +619,12 @@ const scheduledTasks = [
 ];
 
 const inventory = [
-  { id:"INV-001", cat:"Oil",      name:"Engine Oil & Filters",   partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null },
-  { id:"INV-002", cat:"Fuel",     name:"Primary Fuel Filter",    partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null },
-  { id:"INV-003", cat:"Fuel",     name:"Secondary Fuel Filter",  partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null },
-  { id:"INV-004", cat:"Cooling",  name:"Raw Water Impeller",     partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null },
-  { id:"INV-005", cat:"Cooling",  name:"Coolant",                partNum:null,                   vendor:"— add vendor —",  stock:null, cost:null },
-  { id:"INV-006", cat:"Fuel",     name:"Fuel Pump (spare)",      partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null },
+  { id:"INV-001", cat:"Oil",      name:"Engine Oil & Filters",   partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null, notes:"" },
+  { id:"INV-002", cat:"Fuel",     name:"Primary Fuel Filter",    partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null, notes:"" },
+  { id:"INV-003", cat:"Fuel",     name:"Secondary Fuel Filter",  partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null, notes:"" },
+  { id:"INV-004", cat:"Cooling",  name:"Raw Water Impeller",     partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null, notes:"" },
+  { id:"INV-005", cat:"Cooling",  name:"Coolant",                partNum:null,                   vendor:"— add vendor —",  stock:null, cost:null, notes:"" },
+  { id:"INV-006", cat:"Fuel",     name:"Fuel Pump (spare)",      partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null, notes:"" },
 ];
 
 // Sample maintenance log — replace with actual vessel history
@@ -716,9 +760,15 @@ function renderInventory() {
   inventory.forEach(item=>{
     const sc=item.stock===null?'none':item.stock===0?'low':'ok';
     const sl=item.stock===null?'NO DATA':item.stock===0?'OUT OF STOCK':`${item.stock} in stock`;
-    html+=`<div class="inv-card"><div class="inv-card-header"><div><div class="inv-cat">${item.cat}</div><div class="inv-name">${item.name}</div></div><div class="inv-stock ${sc}">${sl}</div></div><div class="inv-meta">${item.partNum?`🔩 ${item.partNum}<br>`:''}${item.vendor?`🏪 ${item.vendor}`:''}${item.cost?` · $${item.cost.toFixed(2)}`:''}</div></div>`;
+    const meta=[
+      item.partNum?`🔩 ${item.partNum}`:'',
+      item.vendor?`🏪 ${item.vendor}`:'',
+      item.cost?`💲${item.cost.toFixed(2)}`:'',
+      item.notes?`📝 ${item.notes}`:''
+    ].filter(Boolean).join(' &nbsp;·&nbsp; ');
+    html+=`<div class="inv-card"><div class="inv-card-header"><div><div class="inv-cat">${item.cat}</div><div class="inv-name">${item.name}</div></div><div class="inv-stock ${sc}">${sl}</div></div>${meta?`<div class="inv-meta">${meta}</div>`:''}</div>`;
   });
-  document.getElementById('inventoryList').innerHTML=html;
+  document.getElementById('inventoryList').innerHTML=html||'<div style="color:var(--muted);text-align:center;padding:20px;">No parts in inventory yet. Tap + Add Part to get started.</div>';
 }
 
 function renderExport() {
@@ -844,7 +894,9 @@ function submitLog() {
   if(pendingStock.partId&&pendingStock.delta!==0){const part=inventory.find(i=>i.id===pendingStock.partId);if(part){const old=part.stock||0;part.stock=Math.max(0,old+pendingStock.delta);stockChange={partId:pendingStock.partId,partName:pendingStock.partName,delta:pendingStock.delta,newStock:part.stock};}}
   state.loggedTasks.push({task,date:dateStr,engines:selectedEngines,hours:hrs?parseInt(hrs):null,notes,cost,tech,photos:[...pendingPhotos],stockChange});
   if(hrs){if(selectedEngines.includes('port')){state.portHrs=Math.max(state.portHrs,parseInt(hrs));document.getElementById('portHrs').value=state.portHrs;}if(selectedEngines.includes('stbd')){state.stbdHrs=Math.max(state.stbdHrs,parseInt(hrs));document.getElementById('stbdHrs').value=state.stbdHrs;}}
-  selectedEngines.forEach(eng=>{if(eng==='port'||eng==='stbd'){const tsk=engineTasks.find(t=>t.name===task);if(tsk){tsk[eng].lastDate=dateStr;if(hrs)tsk[eng].lastHrs=parseInt(hrs);}}});
+  selectedEngines.forEach(eng=>{if(eng==='port'||eng==='stbd'){const tsk=engineTasks.find(t=>t.name===task);if(tsk){tsk[eng].lastDate=dateStr;if(hrs)tsk[eng].lastHrs=parseInt(hrs);if(tsk[eng].nextDate!==null&&tsk[eng].nextHrs===null){tsk[eng].nextDate=calcNextDate(dateStr,tsk.freq);}}}});
+  const schedTask=scheduledTasks.find(t=>t.name===task);if(schedTask&&schedTask.nextDate!==null){schedTask.lastDate=dateStr;schedTask.nextDate=calcNextDate(dateStr,schedTask.interval);}
+  saveState();
   closeLogForm();
   showToast(`✓ ${task} logged${stockChange?` · ${stockChange.partName} → ${stockChange.newStock} in stock`:''}`);
   renderAll();
@@ -858,6 +910,23 @@ function copyExport() {
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 function formatDate(d){const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return `${String(d.getDate()).padStart(2,'0')}-${m[d.getMonth()]}-${d.getFullYear()}`;}
+
+function calcNextDate(fromDateStr, freq) {
+  const d = parseDate(fromDateStr);
+  if (!d || !freq) return null;
+  const f = freq.toLowerCase();
+  const nd = new Date(d);
+  if (f.includes('3 month') || f.includes('quarterly')) nd.setMonth(nd.getMonth() + 3);
+  else if (f.includes('6 month') || f.includes('half'))  nd.setMonth(nd.getMonth() + 6);
+  else if (f.includes('24 month'))                        nd.setFullYear(nd.getFullYear() + 2);
+  else if (f.includes('2 year'))                          nd.setFullYear(nd.getFullYear() + 2);
+  else if (f.includes('3 year'))                          nd.setFullYear(nd.getFullYear() + 3);
+  else if (f.includes('4 year'))                          nd.setFullYear(nd.getFullYear() + 4);
+  else if (f.includes('5 year'))                          nd.setFullYear(nd.getFullYear() + 5);
+  else if (f.includes('annual') || f.includes('yearly') || f === '1 year') nd.setFullYear(nd.getFullYear() + 1);
+  else return null;
+  return formatDate(nd);
+}
 
 function handlePhotoSelect(event) {
   Array.from(event.target.files).forEach(file=>{if(!file.type.startsWith('image/'))return;const r=new FileReader();r.onload=e=>{pendingPhotos.push({dataUrl:e.target.result,name:file.name});renderPhotoPreviews();};r.readAsDataURL(file);});event.target.value='';
@@ -880,11 +949,144 @@ let touchStartX=0;
 document.addEventListener('touchstart',e=>{if(document.getElementById('photoViewer').classList.contains('open'))touchStartX=e.touches[0].clientX;});
 document.addEventListener('touchend',e=>{if(!document.getElementById('photoViewer').classList.contains('open'))return;const diff=touchStartX-e.changedTouches[0].clientX;if(Math.abs(diff)>50)viewerNav(diff>0?1:-1);});
 
+// ── localStorage helpers ──────────────────────────────────────────
+const STORAGE_KEY = 'vessellog_template';
+
+function saveState() {
+  try {
+    const toSave = {
+      portHrs: state.portHrs,
+      stbdHrs: state.stbdHrs,
+      loggedTasks: state.loggedTasks,
+      engineTaskOverrides: engineTasks.map(t => ({
+        name: t.name,
+        port: { lastDate: t.port.lastDate, lastHrs: t.port.lastHrs, nextHrs: t.port.nextHrs, nextDate: t.port.nextDate },
+        stbd: { lastDate: t.stbd.lastDate, lastHrs: t.stbd.lastHrs, nextHrs: t.stbd.nextHrs, nextDate: t.stbd.nextDate },
+      })),
+      inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock, notes: i.notes || '' })),
+      userAddedParts: inventory.filter(i => i.userAdded),
+      userAddedTasks: scheduledTasks.filter(t => t.userAdded),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+  } catch(e) { console.warn('Save failed:', e); }
+}
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return;
+    const data = JSON.parse(saved);
+    if (data.portHrs) state.portHrs = data.portHrs;
+    if (data.stbdHrs) state.stbdHrs = data.stbdHrs;
+    if (data.loggedTasks) state.loggedTasks = data.loggedTasks;
+    if (data.engineTaskOverrides) {
+      data.engineTaskOverrides.forEach(override => {
+        const task = engineTasks.find(t => t.name === override.name);
+        if (task) {
+          task.port.lastDate = override.port.lastDate; task.port.lastHrs = override.port.lastHrs;
+          task.port.nextHrs  = override.port.nextHrs;  task.port.nextDate = override.port.nextDate;
+          task.stbd.lastDate = override.stbd.lastDate; task.stbd.lastHrs = override.stbd.lastHrs;
+          task.stbd.nextHrs  = override.stbd.nextHrs;  task.stbd.nextDate = override.stbd.nextDate;
+        }
+      });
+    }
+    if (data.inventoryStock) {
+      data.inventoryStock.forEach(s => {
+        const item = inventory.find(i => i.id === s.id);
+        if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; }
+      });
+    }
+    // Restore user-added parts
+    if (data.userAddedParts) {
+      data.userAddedParts.forEach(p => {
+        if (!inventory.find(i => i.id === p.id)) inventory.push(p);
+      });
+    }
+    // Restore user-added scheduled tasks
+    if (data.userAddedTasks) {
+      data.userAddedTasks.forEach(t => {
+        if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t);
+      });
+    }
+    document.getElementById('portHrs').value = state.portHrs;
+    document.getElementById('stbdHrs').value = state.stbdHrs;
+  } catch(e) { console.warn('Load failed:', e); }
+}
+
+function clearLocalData() {
+  if (!confirm('This will clear all saved tasks, added parts and hours from this device. Are you sure?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+// ── Add Part (001 + 003) ──────────────────────────────────────────
+function toggleAddPart() {
+  const f = document.getElementById('addPartForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function addNewPart() {
+  const name = document.getElementById('npName').value.trim();
+  if (!name) { showToast('Please enter a part name'); return; }
+  const newId = 'USR-' + Date.now();
+  inventory.push({
+    id: newId,
+    cat:     document.getElementById('npCat').value.trim() || 'General',
+    name,
+    partNum: document.getElementById('npPartNum').value.trim() || null,
+    vendor:  document.getElementById('npVendor').value.trim() || null,
+    stock:   parseInt(document.getElementById('npStock').value) || 0,
+    cost:    null,
+    notes:   document.getElementById('npNotes').value.trim() || '',
+    userAdded: true,
+  });
+  ['npName','npCat','npPartNum','npVendor','npStock','npNotes'].forEach(id => document.getElementById(id).value = '');
+  toggleAddPart();
+  saveState();
+  renderInventory();
+  showToast('✓ Part added');
+}
+
+// ── Add Scheduled Task (002) ──────────────────────────────────────
+function toggleAddTask() {
+  const f = document.getElementById('addTaskForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function addNewTask() {
+  const name = document.getElementById('ntName').value.trim();
+  if (!name) { showToast('Please enter a task name'); return; }
+  const rawDate = document.getElementById('ntNextDate').value;
+  const nextDate = rawDate ? formatDate(new Date(rawDate)) : null;
+  scheduledTasks.push({
+    name,
+    lastDate:  '—',
+    nextDate,
+    interval:  document.getElementById('ntInterval').value.trim() || 'annual',
+    notes:     document.getElementById('ntNotes').value.trim() || '',
+    userAdded: true,
+  });
+  ['ntName','ntInterval','ntNextDate','ntNotes'].forEach(id => document.getElementById(id).value = '');
+  toggleAddTask();
+  saveState();
+  renderDashboard();
+  showToast('✓ Task added');
+}
+
 function init() {
   const now=new Date(),days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   document.getElementById('headerDate').textContent=`${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
   document.getElementById('portHrs').value=state.portHrs;
   document.getElementById('stbdHrs').value=state.stbdHrs;
+  // Single engine support (005)
+  if (typeof ENGINE_CONFIG !== 'undefined' && ENGINE_CONFIG === 'single') {
+    document.getElementById('tab-engine').classList.add('single-engine');
+    document.getElementById('stbdHrs').closest('.engine-input-wrap') && document.getElementById('stbdHrs').closest('.engine-input-wrap').style.setProperty('display','none');
+    // Hide stbd chip in log form
+    const stbdChip = document.querySelector('.engine-chip[data-eng="stbd"]');
+    if (stbdChip) stbdChip.style.display = 'none';
+  }
+  loadState();
   renderAll();
 }
 init();

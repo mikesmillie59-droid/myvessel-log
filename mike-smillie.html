@@ -750,7 +750,9 @@ function saveState() {
         port: { lastDate: t.port.lastDate, lastHrs: t.port.lastHrs, nextHrs: t.port.nextHrs, nextDate: t.port.nextDate },
         stbd: { lastDate: t.stbd.lastDate, lastHrs: t.stbd.lastHrs, nextHrs: t.stbd.nextHrs, nextDate: t.stbd.nextDate },
       })),
-      inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock })),
+      inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock, notes: i.notes || '' })),
+      userAddedParts: inventory.filter(i => i.userAdded),
+      userAddedTasks: scheduledTasks.filter(t => t.userAdded),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch(e) { console.warn('Save failed:', e); }
@@ -784,7 +786,17 @@ function loadState() {
     if (data.inventoryStock) {
       data.inventoryStock.forEach(s => {
         const item = inventory.find(i => i.id === s.id);
-        if (item) item.stock = s.stock;
+        if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; }
+      });
+    }
+    if (data.userAddedParts) {
+      data.userAddedParts.forEach(p => {
+        if (!inventory.find(i => i.id === p.id)) inventory.push(p);
+      });
+    }
+    if (data.userAddedTasks) {
+      data.userAddedTasks.forEach(t => {
+        if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t);
       });
     }
     // Sync hour inputs
@@ -851,14 +863,14 @@ const inventory = [
   { id:"INV-003", cat:"Fuel",            name:"Primary Fuel Filter",    partNum:"Racor 500 — 2010PM 30mic",       vendor:"Diesel HQ Ltd",     stock:10,   cost:13.80 },
   { id:"INV-004", cat:"Fuel",            name:"Fuel Pump",              partNum:"Ford Industrial FNH",            vendor:"APUK",              stock:1,    cost:null },
   { id:"INV-005", cat:"Impeller",        name:"Raw Water Impeller",     partNum:"Johnson SPXFLOW 09-1028BT-1",    vendor:null,                stock:2,    cost:null },
-  { id:"INV-006", cat:"Cooling",         name:"Coolant",                partNum:null,                             vendor:"Repco",             stock:null, cost:null },
-  { id:"INV-007", cat:"Oil",             name:"Oil Coolers",            partNum:"American Diesel",                vendor:"American Diesel",   stock:null, cost:null },
-  { id:"INV-008", cat:"Varnishing",      name:"Varnishing",             partNum:"D2",                             vendor:"Burnsco",           stock:null, cost:null },
-  { id:"INV-009", cat:"Oil",             name:"Oil Injectors",          partNum:null,                             vendor:null,                stock:null, cost:null },
-  { id:"INV-010", cat:"Antifouling",     name:"Antifouling",            partNum:null,                             vendor:null,                stock:null, cost:null },
-  { id:"INV-011", cat:"House Batteries", name:"House Batteries",        partNum:null,                             vendor:null,                stock:null, cost:null },
-  { id:"INV-012", cat:"Start Batteries", name:"Start Batteries",        partNum:null,                             vendor:null,                stock:null, cost:null },
-  { id:"INV-013", cat:"Heat Exchangers", name:"Heat Exchangers",        partNum:"Onehunga Radiators",             vendor:"Onehunga Radiators",stock:null, cost:null },
+  { id:"INV-006", cat:"Cooling",         name:"Coolant",                partNum:null,                             vendor:"Repco",             stock:null, cost:null, notes:"" },
+  { id:"INV-007", cat:"Oil",             name:"Oil Coolers",            partNum:"American Diesel",                vendor:"American Diesel",   stock:null, cost:null, notes:"" },
+  { id:"INV-008", cat:"Varnishing",      name:"Varnishing",             partNum:"D2",                             vendor:"Burnsco",           stock:null, cost:null, notes:"" },
+  { id:"INV-009", cat:"Oil",             name:"Oil Injectors",          partNum:null,                             vendor:null,                stock:null, cost:null, notes:"" },
+  { id:"INV-010", cat:"Antifouling",     name:"Antifouling",            partNum:null,                             vendor:null,                stock:null, cost:null, notes:"" },
+  { id:"INV-011", cat:"House Batteries", name:"House Batteries",        partNum:null,                             vendor:null,                stock:null, cost:null, notes:"" },
+  { id:"INV-012", cat:"Start Batteries", name:"Start Batteries",        partNum:null,                             vendor:null,                stock:null, cost:null, notes:"" },
+  { id:"INV-013", cat:"Heat Exchangers", name:"Heat Exchangers",        partNum:"Onehunga Radiators",             vendor:"Onehunga Radiators",stock:null, cost:null, notes:"" },
 ];
 
 const maintenanceLog = [
@@ -1384,6 +1396,60 @@ function copyExport() {
     el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
     showToast('Copied!');
   });
+}
+
+// ── Add Part (001 + 003) ──────────────────────────────────────────
+function toggleAddPart() {
+  const f = document.getElementById('addPartForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function addNewPart() {
+  const name = document.getElementById('npName').value.trim();
+  if (!name) { showToast('Please enter a part name'); return; }
+  const newId = 'USR-' + Date.now();
+  inventory.push({
+    id: newId,
+    cat:     document.getElementById('npCat').value.trim() || 'General',
+    name,
+    partNum: document.getElementById('npPartNum').value.trim() || null,
+    vendor:  document.getElementById('npVendor').value.trim() || null,
+    stock:   parseInt(document.getElementById('npStock').value) || 0,
+    cost:    null,
+    notes:   document.getElementById('npNotes').value.trim() || '',
+    userAdded: true,
+  });
+  ['npName','npCat','npPartNum','npVendor','npStock','npNotes'].forEach(id => document.getElementById(id).value = '');
+  toggleAddPart();
+  saveState();
+  renderInventory();
+  showToast('✓ Part added');
+}
+
+// ── Add Scheduled Task (002) ──────────────────────────────────────
+function toggleAddTask() {
+  const f = document.getElementById('addTaskForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function addNewTask() {
+  const name = document.getElementById('ntName').value.trim();
+  if (!name) { showToast('Please enter a task name'); return; }
+  const rawDate = document.getElementById('ntNextDate').value;
+  const nextDate = rawDate ? formatDate(new Date(rawDate)) : null;
+  scheduledTasks.push({
+    name,
+    lastDate:  '—',
+    nextDate,
+    interval:  document.getElementById('ntInterval').value.trim() || 'annual',
+    notes:     document.getElementById('ntNotes').value.trim() || '',
+    userAdded: true,
+  });
+  ['ntName','ntInterval','ntNextDate','ntNotes'].forEach(id => document.getElementById(id).value = '');
+  toggleAddTask();
+  saveState();
+  renderDashboard();
+  showToast('✓ Task added');
 }
 
 function showToast(msg) {
