@@ -209,6 +209,12 @@
   .inv-stock.ok   { background: var(--green-bg); color: var(--green); }
   .inv-stock.none { background: var(--amber-bg); color: var(--amber); }
   .inv-meta { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+  .inv-stock-controls { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .inv-adj-btn { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: var(--text); font-size: 16px; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; flex-shrink: 0; }
+  .inv-adj-btn:hover { background: rgba(255,255,255,0.15); }
+  .inv-adj-btn.minus { color: var(--red); border-color: rgba(224,75,74,0.3); }
+  .inv-adj-btn.plus  { color: var(--green); border-color: rgba(46,125,82,0.3); }
+  .inv-qty-display { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; min-width: 32px; text-align: center; color: var(--text); }
   .inv-cat { display: inline-block; font-size: 10px; letter-spacing: 0.05em; background: var(--steel); color: var(--wake-lt); padding: 2px 7px; border-radius: 4px; margin-bottom: 5px; font-weight: 600; }
 
   /* ── Export ── */
@@ -745,12 +751,14 @@ function renderLog() {
 
 function renderInventory() {
   let html='';
-  inventory.forEach(item=>{
+  inventory.forEach((item,idx)=>{
     const sc=item.stock===null?'none':item.stock===0?'low':'ok';
     const sl=item.stock===null?'NO DATA':item.stock===0?'OUT OF STOCK':`${item.stock} in stock`;
-    const meta=[item.partNum?`🔩 ${item.partNum}`:'',item.vendor?`🏪 ${item.vendor}`:'',item.cost?`💲${item.cost.toFixed(2)}`:'',item.notes?`📝 ${item.notes}`:''].filter(Boolean).join(' &nbsp;·&nbsp; ');html+=`<div class="inv-card"><div class="inv-card-header"><div><div class="inv-cat">${item.cat}</div><div class="inv-name">${item.name}</div></div><div class="inv-stock ${sc}">${sl}</div></div>${meta?`<div class="inv-meta">${meta}</div>`:''}</div>`;
+    const meta=[item.partNum?`🔩 ${item.partNum}`:'',item.vendor?`🏪 ${item.vendor}`:'',item.cost?`💲${item.cost.toFixed(2)}`:'',item.notes?`📝 ${item.notes}`:''].filter(Boolean).join(' &nbsp;·&nbsp; ');
+    const qty=item.stock!==null?item.stock:0;
+    html+=`<div class="inv-card"><div class="inv-card-header"><div><div class="inv-cat">${item.cat}</div><div class="inv-name">${item.name}</div></div><div class="inv-stock ${sc}">${sl}</div></div>${meta?`<div class="inv-meta">${meta}</div>`:''}<div class="inv-stock-controls"><button class="inv-adj-btn minus" onclick="adjustPartStock(${idx},-1)">−</button><span class="inv-qty-display">${qty}</span><button class="inv-adj-btn plus" onclick="adjustPartStock(${idx},+1)">＋</button></div></div>`;
   });
-  document.getElementById('inventoryList').innerHTML=html;
+  document.getElementById('inventoryList').innerHTML=html||'<div style="color:var(--text-dim);text-align:center;padding:20px;">No parts yet. Tap + Add Part to get started.</div>';
 }
 
 function renderExport() {
@@ -985,6 +993,16 @@ function loadBoatPhoto() {
       document.getElementById('boatPhotoOverlay').style.display = 'block';
     }
   } catch(e) {}
+}
+
+function adjustPartStock(idx, delta) {
+  const item = inventory[idx];
+  if (!item) return;
+  const current = item.stock !== null ? item.stock : 0;
+  item.stock = Math.max(0, current + delta);
+  saveState();
+  renderInventory();
+  showToast(`${item.name}: ${item.stock} in stock`);
 }
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
