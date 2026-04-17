@@ -106,6 +106,10 @@
   /* ── Section header ── */
   .sec-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; margin-top: 4px; }
   .sec-title { font-family: 'Archivo Black', sans-serif; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+  .boat-photo-wrap { width: 100%; margin-top: 12px; border-radius: 10px; overflow: hidden; position: relative; aspect-ratio: 16/5; background: var(--hull); border: 1px solid rgba(61,191,184,0.15); cursor: pointer; }
+  .boat-photo-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .boat-photo-placeholder { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 100%; color: var(--text-dim); font-size: 12px; font-family: 'JetBrains Mono', monospace; min-height: 80px; }
+  .boat-photo-overlay { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.8); font-size: 10px; padding: 3px 8px; border-radius: 20px; cursor: pointer; }
   .add-btn { background: rgba(200,146,42,0.15); border: 1px solid rgba(200,146,42,0.4); color: #E8B84B; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; padding: 5px 14px; border-radius: 20px; cursor: pointer; transition: background 0.2s; font-family: 'Archivo Black', sans-serif; }
   .add-btn:hover { background: rgba(200,146,42,0.28); }
   .single-engine .engine-header-pill.stbd, .single-engine .eng-col.stbd { display: none; }
@@ -792,6 +796,7 @@ function showTab(tab) {
   const idx=['dashboard','engine','log','inventory','export'].indexOf(tab);
   document.querySelectorAll('.tab')[idx].classList.add('active');
   document.querySelectorAll('.nav-item')[idx].classList.add('active');
+  const wrap=document.getElementById("boatPhotoWrap");const inp=document.getElementById("boatPhotoInput");if(wrap)wrap.style.display=tab==="dashboard"?"block":"none";if(inp)inp.style.display="none";
   if(tab==='log')renderLog();
   if(tab==='export')renderExport();
 }
@@ -954,6 +959,81 @@ function addNewTask() {
   saveState();
   renderDashboard();
   showToast('✓ Task added');
+}
+
+// ── localStorage persistence ──────────────────────────────────────
+const STORAGE_KEY = 'vessellog_mark_cuppernull';
+
+function saveState() {
+  try {
+    const toSave = {
+      portHrs: state.portHrs,
+      stbdHrs: state.stbdHrs,
+      loggedTasks: state.loggedTasks,
+      engineTaskOverrides: engineTasks.map(t => ({
+        name: t.name,
+        port: { lastDate: t.port.lastDate, lastHrs: t.port.lastHrs, nextHrs: t.port.nextHrs, nextDate: t.port.nextDate },
+        stbd: { lastDate: t.stbd.lastDate, lastHrs: t.stbd.lastHrs, nextHrs: t.stbd.nextHrs, nextDate: t.stbd.nextDate },
+      })),
+      inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock, notes: i.notes || '' })),
+      userAddedParts: inventory.filter(i => i.userAdded),
+      userAddedTasks: scheduledTasks.filter(t => t.userAdded),
+      scheduledTaskOverrides: scheduledTasks.filter(t => !t.userAdded).map(t => ({ name: t.name, lastDate: t.lastDate, nextDate: t.nextDate })),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+  } catch(e) { console.warn('Save failed:', e); }
+}
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return;
+    const data = JSON.parse(saved);
+    if (data.portHrs) state.portHrs = data.portHrs;
+    if (data.stbdHrs) state.stbdHrs = data.stbdHrs;
+    if (data.loggedTasks) state.loggedTasks = data.loggedTasks;
+    if (data.engineTaskOverrides) {
+      data.engineTaskOverrides.forEach(override => {
+        const task = engineTasks.find(t => t.name === override.name);
+        if (task) {
+          task.port.lastDate = override.port.lastDate; task.port.lastHrs = override.port.lastHrs;
+          task.port.nextHrs  = override.port.nextHrs;  task.port.nextDate = override.port.nextDate;
+          task.stbd.lastDate = override.stbd.lastDate; task.stbd.lastHrs = override.stbd.lastHrs;
+          task.stbd.nextHrs  = override.stbd.nextHrs;  task.stbd.nextDate = override.stbd.nextDate;
+        }
+      });
+    }
+    if (data.scheduledTaskOverrides) {
+      data.scheduledTaskOverrides.forEach(override => {
+        const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded);
+        if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; }
+      });
+    }
+    if (data.inventoryStock) {
+      data.inventoryStock.forEach(s => {
+        const item = inventory.find(i => i.id === s.id);
+        if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; }
+      });
+    }
+    if (data.userAddedParts) {
+      data.userAddedParts.forEach(p => {
+        if (!inventory.find(i => i.id === p.id)) inventory.push(p);
+      });
+    }
+    if (data.userAddedTasks) {
+      data.userAddedTasks.forEach(t => {
+        if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t);
+      });
+    }
+    document.getElementById('portHrs').value = state.portHrs;
+    document.getElementById('stbdHrs').value = state.stbdHrs;
+  } catch(e) { console.warn('Load failed:', e); }
+}
+
+function clearLocalData() {
+  if (!confirm('This will clear all saved tasks and hours from this device. Only do this after your app has been updated. Are you sure?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
 }
 
 function handleBoatPhoto(event) {
