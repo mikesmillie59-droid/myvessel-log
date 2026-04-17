@@ -757,8 +757,21 @@ function renderEngineList() {
   document.getElementById('engineTaskList').innerHTML=html;
 }
 
+function deleteLogEntry(idx) {
+  if (!confirm('Delete this log entry?')) return;
+  state.loggedTasks.splice(idx, 1);
+  saveState();
+  renderLog();
+  renderDashboard();
+  renderEngineList();
+  showToast('Entry deleted');
+}
+
 function renderLog() {
-  const all=[...maintenanceLog,...state.loggedTasks.map(l=>({date:l.date,task:l.task,engine:l.engines.join('+'),notes:l.notes,tech:l.tech,photos:l.photos||[]}))].reverse();
+  const baked=maintenanceLog.map(l=>({...l,isLogged:false}));
+  const logged=state.loggedTasks.map(l=>({date:l.date,task:l.task,engine:l.engines.join('+'),notes:l.notes,tech:l.tech,photos:l.photos||[],isLogged:true}));
+  const all=[...baked,...logged].reverse();
+  let loggedIdx=0;
   document.getElementById('logBadge').textContent=`${all.length} entries`;
   if(!all.length){document.getElementById('logList').innerHTML=`<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No log entries yet.<br>Tap ＋ to record maintenance.</div></div>`;return;}
   let html='';
@@ -768,7 +781,9 @@ function renderLog() {
     const photos=entry.photos||[];
     let photoHtml='';
     if(photos.length){photoHtml=`<div class="log-photo-strip">`;photos.forEach((p,pi)=>{photoHtml+=`<img class="log-photo-thumb" src="${p.dataUrl}" onclick="openViewer(${idx},${pi},event)">`});photoHtml+=`</div>`;}
-    html+=`<div class="log-entry"><div class="log-entry-header"><div class="log-entry-task">${entry.task}</div><div class="log-entry-date">${entry.date}</div></div><div class="log-entry-meta"><span class="log-entry-tag ${tagCls}">${eng.toUpperCase()}</span>${entry.notes?entry.notes:''}${entry.tech?`<br>👤 ${entry.tech}`:''}${photos.length?`<span class="photo-count-badge">📷 ${photos.length}</span>`:''}</div>${photoHtml}</div>`;
+    let deleteBtn='';
+    if(entry.isLogged){const realIdx=state.loggedTasks.length-1-loggedIdx;deleteBtn=`<button onclick="deleteLogEntry(${realIdx})" style="background:none;border:none;color:var(--text-dim);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1;" title="Delete entry">🗑</button>`;loggedIdx++;}
+    html+=`<div class="log-entry"><div class="log-entry-header"><div class="log-entry-task">${entry.task}</div><div style="display:flex;align-items:center;gap:4px;">${deleteBtn}<div class="log-entry-date">${entry.date}</div></div></div><div class="log-entry-meta"><span class="log-entry-tag ${tagCls}">${eng.toUpperCase()}</span>${entry.notes?entry.notes:''}${entry.tech?`<br>👤 ${entry.tech}`:''}${photos.length?`<span class="photo-count-badge">📷 ${photos.length}</span>`:''}</div>${photoHtml}</div>`;
   });
   document.getElementById('logList').innerHTML=html;
   window._logEntries=all;
