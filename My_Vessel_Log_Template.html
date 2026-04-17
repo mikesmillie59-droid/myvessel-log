@@ -479,7 +479,7 @@
   <div class="section" id="tab-export">
     <div class="export-box">
       <div class="export-title">📤 Export Summary</div>
-      <div class="export-sub">Start a new Claude chat, upload your spreadsheet, paste this summary and say <em style="color:var(--wake)">"please update my spreadsheet"</em>.</div>
+      <div class="export-sub">Copy the summary below and paste it into an email to <em style="color:var(--wake)">mikesmillie59@gmail.com</em> — we'll update your app within 48 hours.</div>
       <div class="export-text" id="exportText">Log tasks first to generate export summary.</div>
       <button class="btn-copy" id="copyBtn" onclick="copyExport()">Copy to Clipboard</button>
     </div>
@@ -1107,6 +1107,17 @@ function saveState() {
       scheduledTaskOverrides: scheduledTasks.filter(t => !t.userAdded).map(t => ({ name: t.name, lastDate: t.lastDate, nextDate: t.nextDate })),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    // Save persistent data (survives Clear Saved Data)
+    const persistent = {
+      portHrs: state.portHrs,
+      stbdHrs: state.stbdHrs,
+      inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock, notes: i.notes || '' })),
+      userAddedParts: inventory.filter(i => i.userAdded),
+      engineTaskOverrides: toSave.engineTaskOverrides,
+      scheduledTaskOverrides: toSave.scheduledTaskOverrides,
+      userAddedTasks: toSave.userAddedTasks,
+    };
+    localStorage.setItem(STORAGE_KEY + '_persist', JSON.stringify(persistent));
   } catch(e) { console.warn('Save failed:', e); }
 }
 
@@ -1156,11 +1167,29 @@ function loadState() {
     document.getElementById('portHrs').value = state.portHrs;
     document.getElementById('stbdHrs').value = state.stbdHrs;
   } catch(e) { console.warn('Load failed:', e); }
+  // Always restore persistent data (survives Clear Saved Data)
+  try {
+    const ps = localStorage.getItem(STORAGE_KEY + '_persist');
+    if (ps) {
+      const pd = JSON.parse(ps);
+      // Restore hours if not already set from main state
+      if (!localStorage.getItem(STORAGE_KEY)) {
+        if (pd.portHrs) { state.portHrs = pd.portHrs; document.getElementById('portHrs').value = pd.portHrs; }
+        if (pd.stbdHrs) { state.stbdHrs = pd.stbdHrs; document.getElementById('stbdHrs').value = pd.stbdHrs; }
+        if (pd.inventoryStock) pd.inventoryStock.forEach(s => { const item = inventory.find(i => i.id === s.id); if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; } });
+        if (pd.userAddedParts) pd.userAddedParts.forEach(p => { if (!inventory.find(i => i.id === p.id)) inventory.push(p); });
+        if (pd.engineTaskOverrides) pd.engineTaskOverrides.forEach(override => { const task = engineTasks.find(t => t.name === override.name); if (task) { task.port.lastDate=override.port.lastDate; task.port.lastHrs=override.port.lastHrs; task.port.nextHrs=override.port.nextHrs; task.port.nextDate=override.port.nextDate; task.stbd.lastDate=override.stbd.lastDate; task.stbd.lastHrs=override.stbd.lastHrs; task.stbd.nextHrs=override.stbd.nextHrs; task.stbd.nextDate=override.stbd.nextDate; } });
+        if (pd.scheduledTaskOverrides) pd.scheduledTaskOverrides.forEach(override => { const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded); if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; } });
+        if (pd.userAddedTasks) pd.userAddedTasks.forEach(t => { if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t); });
+      }
+    }
+  } catch(e) { console.warn('Persist load failed:', e); }
 }
 
 function clearLocalData() {
   if (!confirm('This will clear all saved tasks, added parts and hours from this device. Are you sure?')) return;
   localStorage.removeItem(STORAGE_KEY);
+  // Keep _persist so engine hours and inventory survive
   location.reload();
 }
 
