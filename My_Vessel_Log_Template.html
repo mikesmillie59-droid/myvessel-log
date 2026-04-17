@@ -112,6 +112,11 @@
   .boat-photo-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .boat-photo-placeholder { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 100%; color: var(--text-dim); font-size: 12px; font-family: 'JetBrains Mono', monospace; min-height: 80px; }
   .boat-photo-overlay { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.8); font-size: 10px; padding: 3px 8px; border-radius: 20px; cursor: pointer; }
+  .boat-photo-controls { position: absolute; bottom: 8px; right: 8px; display: none; flex-direction: column; gap: 4px; }
+  .boat-photo-wrap:hover .boat-photo-controls,
+  .boat-photo-wrap.show-controls .boat-photo-controls { display: flex; }
+  .photo-pos-btn { background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.25); color: rgba(255,255,255,0.85); font-size: 10px; padding: 3px 8px; border-radius: 12px; cursor: pointer; white-space: nowrap; text-align: center; }
+  .photo-pos-btn.active { background: rgba(61,191,184,0.4); border-color: rgba(61,191,184,0.6); }
   .add-btn { background: rgba(200,146,42,0.15); border: 1px solid rgba(200,146,42,0.4); color: #E8B84B; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; padding: 5px 14px; border-radius: 20px; cursor: pointer; transition: background 0.2s; font-family: 'Archivo Black', sans-serif; }
   .add-btn:hover { background: rgba(200,146,42,0.28); }
   .single-engine .engine-header-pill.stbd,
@@ -360,6 +365,11 @@
       <div class="boat-photo-placeholder" id="boatPhotoPlaceholder">📷 Tap to add your boat photo</div>
       <img id="boatPhotoImg" style="display:none;" alt="Your vessel">
       <div class="boat-photo-overlay" id="boatPhotoOverlay" style="display:none;" onclick="event.stopPropagation();document.getElementById('boatPhotoInput').click()">Change photo</div>
+      <div class="boat-photo-controls" id="boatPhotoControls">
+        <div class="photo-pos-btn" id="posTop"    onclick="event.stopPropagation();setPhotoPos('top')">▲ Top</div>
+        <div class="photo-pos-btn" id="posMid"    onclick="event.stopPropagation();setPhotoPos('center')">● Mid</div>
+        <div class="photo-pos-btn" id="posBottom" onclick="event.stopPropagation();setPhotoPos('bottom')">▼ Bottom</div>
+      </div>
     </div>
     <input type="file" id="boatPhotoInput" accept="image/*" style="display:none;" onchange="handleBoatPhoto(event)">
     <div class="hours-bar">
@@ -966,7 +976,33 @@ function loadBoatPhoto() {
       document.getElementById('boatPhotoPlaceholder').style.display = 'none';
       document.getElementById('boatPhotoOverlay').style.display = 'block';
     }
+    const pos = localStorage.getItem(STORAGE_KEY + '_photopos') || 'center';
+    applyPhotoPos(pos);
   } catch(e) {}
+}
+
+function setPhotoPos(pos) {
+  applyPhotoPos(pos);
+  try { localStorage.setItem(STORAGE_KEY + '_photopos', pos); } catch(e) {}
+}
+
+function applyPhotoPos(pos) {
+  const img = document.getElementById('boatPhotoImg');
+  if (img) img.style.objectPosition = pos;
+  ['posTop','posMid','posBottom'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+  const map = { top: 'posTop', center: 'posMid', bottom: 'posBottom' };
+  const active = document.getElementById(map[pos]);
+  if (active) active.classList.add('active');
+  // Show controls briefly then hide on mobile
+  const wrap = document.getElementById('boatPhotoWrap');
+  if (wrap) {
+    wrap.classList.add('show-controls');
+    clearTimeout(wrap._hideTimer);
+    wrap._hideTimer = setTimeout(() => wrap.classList.remove('show-controls'), 2000);
+  }
 }
 
 function adjustPartStock(idx, delta) {
