@@ -329,6 +329,12 @@
       <div class="vessel-name">⚓ MY <span>VESSEL LOG</span></div>
       <div class="vessel-subtitle" id="headerDate">—</div>
     </div>
+    <div class="boat-photo-wrap" onclick="document.getElementById('boatPhotoInput').click()" id="boatPhotoWrap">
+      <div class="boat-photo-placeholder" id="boatPhotoPlaceholder">📷 Tap to add your boat photo</div>
+      <img id="boatPhotoImg" style="display:none;" alt="Your vessel">
+      <div class="boat-photo-overlay" id="boatPhotoOverlay" style="display:none;" onclick="event.stopPropagation();document.getElementById('boatPhotoInput').click()">Change photo</div>
+    </div>
+    <input type="file" id="boatPhotoInput" accept="image/*" style="display:none;" onchange="handleBoatPhoto(event)">
     <div class="hours-bar">
       <div class="hours-pill">
         <span class="hours-pill-label">PORT HRS</span>
