@@ -733,7 +733,7 @@ function renderDashboard() {
   let schedHTML='';
   scheduledTasks.forEach((t,i)=>{
     const st=getScheduledStatus(t);
-    schedHTML+=`<div class="task-card ${st.cls}" style="animation-delay:${i*0.04}s"><div class="task-main"><div class="task-check"></div><div class="task-info"><div class="task-name">${t.name}</div><div class="task-meta">Last: ${t.lastDate} · ${t.interval}</div></div><div class="task-status">${st.icon} ${st.detail}</div></div></div>`;
+    schedHTML+=`<div class="task-card ${st.cls}" onclick="openLogForm('${t.name}','general')" style="animation-delay:${i*0.04}s;cursor:pointer;"><div class="task-main"><div class="task-check">${state.loggedTasks.find(l=>l.task===t.name)?'✓':''}</div><div class="task-info"><div class="task-name">${t.name}</div><div class="task-meta">Last: ${t.lastDate} · ${t.interval}</div></div><div class="task-status">${st.icon} ${st.detail}</div></div></div>`;
   });
   document.getElementById('dashScheduled').innerHTML=schedHTML;
 }
@@ -908,7 +908,7 @@ function submitLog() {
   state.loggedTasks.push({task,date:dateStr,engines:selectedEngines,hours:hrs?parseInt(hrs):null,notes,cost,tech,photos:[...pendingPhotos],stockChange});
   if(hrs){if(selectedEngines.includes('port')){state.portHrs=Math.max(state.portHrs,parseInt(hrs));document.getElementById('portHrs').value=state.portHrs;}if(selectedEngines.includes('stbd')){state.stbdHrs=Math.max(state.stbdHrs,parseInt(hrs));document.getElementById('stbdHrs').value=state.stbdHrs;}}
   selectedEngines.forEach(eng=>{if(eng==='port'||eng==='stbd'){const tsk=engineTasks.find(t=>t.name===task);if(tsk){tsk[eng].lastDate=dateStr;if(hrs)tsk[eng].lastHrs=parseInt(hrs);if(tsk[eng].nextDate!==null&&tsk[eng].nextHrs===null){tsk[eng].nextDate=calcNextDate(dateStr,tsk.freq);}}}});
-  const schedTask=scheduledTasks.find(t=>t.name===task);if(schedTask&&schedTask.nextDate!==null){schedTask.lastDate=dateStr;schedTask.nextDate=calcNextDate(dateStr,schedTask.interval);}
+  const schedTask=scheduledTasks.find(t=>t.name===task);if(schedTask){schedTask.lastDate=dateStr;const nd=calcNextDate(dateStr,schedTask.interval);if(nd)schedTask.nextDate=nd;}
   saveState();
   closeLogForm();
   showToast(`✓ ${task} logged${stockChange?` · ${stockChange.partName} → ${stockChange.newStock} in stock`:''}`);

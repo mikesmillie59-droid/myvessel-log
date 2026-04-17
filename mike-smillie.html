@@ -1057,9 +1057,9 @@ function renderDashboard() {
   scheduledTasks.forEach((t, i) => {
     const st = getScheduledStatus(t);
     schedHTML += `
-    <div class="task-card ${st.cls}" style="animation-delay:${i*0.04}s">
+    <div class="task-card ${st.cls}" onclick="openLogForm('${t.name}','general')" style="animation-delay:${i*0.04}s;cursor:pointer;">
       <div class="task-main">
-        <div class="task-check"></div>
+        <div class="task-check">${state.loggedTasks.find(l=>l.task===t.name)?'✓':''}</div>
         <div class="task-info">
           <div class="task-name">${t.name}</div>
           <div class="task-meta">Last: ${t.lastDate} · ${t.interval}</div>
@@ -1423,8 +1423,10 @@ function submitLog() {
         tsk[eng].lastDate = dateStr;
         if (hrs) tsk[eng].lastHrs = parseInt(hrs);
         // Recalculate nextDate for date-based tasks
-        if (tsk[eng].nextDate !== null && tsk[eng].nextHrs === null) {
-          tsk[eng].nextDate = calcNextDate(dateStr, tsk.freq);
+        // Update nextDate if task is date-based (no nextHrs) regardless of whether nextDate was set
+        if (tsk[eng].nextHrs === null) {
+          const nd = calcNextDate(dateStr, tsk.freq);
+          if (nd) tsk[eng].nextDate = nd;
         }
       }
     }
