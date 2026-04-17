@@ -805,6 +805,7 @@ function saveState() {
       inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock, notes: i.notes || '' })),
       userAddedParts: inventory.filter(i => i.userAdded),
       userAddedTasks: scheduledTasks.filter(t => t.userAdded),
+      scheduledTaskOverrides: scheduledTasks.filter(t => !t.userAdded).map(t => ({ name: t.name, lastDate: t.lastDate, nextDate: t.nextDate })),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch(e) { console.warn('Save failed:', e); }
@@ -844,6 +845,12 @@ function loadState() {
     if (data.userAddedParts) {
       data.userAddedParts.forEach(p => {
         if (!inventory.find(i => i.id === p.id)) inventory.push(p);
+      });
+    }
+    if (data.scheduledTaskOverrides) {
+      data.scheduledTaskOverrides.forEach(override => {
+        const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded);
+        if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; }
       });
     }
     if (data.userAddedTasks) {
@@ -1434,9 +1441,10 @@ function submitLog() {
 
   // Also recalculate scheduled tasks
   const schedTask = scheduledTasks.find(t => t.task === task || t.name === task);
-  if (schedTask && schedTask.nextDate !== null) {
+  if (schedTask) {
     schedTask.lastDate = dateStr;
-    schedTask.nextDate = calcNextDate(dateStr, schedTask.interval);
+    const nd = calcNextDate(dateStr, schedTask.interval);
+    if (nd) schedTask.nextDate = nd;
   }
 
   saveState();
