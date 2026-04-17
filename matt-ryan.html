@@ -942,6 +942,35 @@ function addNewTask() {
   showToast('✓ Task added');
 }
 
+function handleBoatPhoto(event) {
+  const file = event.target.files[0];
+  if (!file || !file.type.startsWith('image/')) return;
+  const r = new FileReader();
+  r.onload = e => {
+    const dataUrl = e.target.result;
+    document.getElementById('boatPhotoImg').src = dataUrl;
+    document.getElementById('boatPhotoImg').style.display = 'block';
+    document.getElementById('boatPhotoPlaceholder').style.display = 'none';
+    document.getElementById('boatPhotoOverlay').style.display = 'block';
+    try { localStorage.setItem(STORAGE_KEY + '_boatphoto', dataUrl); } catch(e) {}
+    showToast('✓ Boat photo saved');
+  };
+  r.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function loadBoatPhoto() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY + '_boatphoto');
+    if (saved) {
+      document.getElementById('boatPhotoImg').src = saved;
+      document.getElementById('boatPhotoImg').style.display = 'block';
+      document.getElementById('boatPhotoPlaceholder').style.display = 'none';
+      document.getElementById('boatPhotoOverlay').style.display = 'block';
+    }
+  } catch(e) {}
+}
+
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 function calcNextDate(fromDateStr, freq) {
   const d = parseDate(fromDateStr);
