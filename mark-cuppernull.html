@@ -224,6 +224,14 @@
   .inv-adj-btn.minus { color: var(--red); border-color: rgba(224,75,74,0.3); }
   .inv-adj-btn.plus  { color: var(--green); border-color: rgba(46,125,82,0.3); }
   .inv-qty-display { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; min-width: 32px; text-align: center; color: var(--text); }
+  .inv-action-btn { background: none; border: none; font-size: 13px; cursor: pointer; padding: 4px 8px; border-radius: 6px; color: var(--text-dim); transition: background 0.15s; }
+  .inv-action-btn:hover { background: rgba(255,255,255,0.08); }
+  .inv-action-btn.delete { color: var(--red); }
+  .inv-edit-form { margin-top: 10px; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 12px; display: none; }
+  .inv-edit-form.open { display: block; }
+  .inv-edit-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .inv-edit-label { font-size: 11px; color: var(--text-dim); min-width: 72px; }
+  .inv-edit-input { flex: 1; background: var(--deep); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; color: var(--text); font-size: 13px; padding: 5px 8px; }
   .inv-cat { display: inline-block; font-size: 10px; letter-spacing: 0.05em; background: var(--steel); color: var(--wake-lt); padding: 2px 7px; border-radius: 4px; margin-bottom: 5px; font-weight: 600; }
 
   /* ── Export ── */
@@ -779,7 +787,12 @@ function renderInventory() {
     const sl=item.stock===null?'NO DATA':item.stock===0?'OUT OF STOCK':`${item.stock} in stock`;
     const meta=[item.partNum?`🔩 ${item.partNum}`:'',item.vendor?`🏪 ${item.vendor}`:'',item.cost?`💲${item.cost.toFixed(2)}`:'',item.notes?`📝 ${item.notes}`:''].filter(Boolean).join(' &nbsp;·&nbsp; ');
     const qty=item.stock!==null?item.stock:0;
-    html+=`<div class="inv-card"><div class="inv-card-header"><div><div class="inv-cat">${item.cat}</div><div class="inv-name">${item.name}</div></div><div class="inv-stock ${sc}">${sl}</div></div>${meta?`<div class="inv-meta">${meta}</div>`:''}<div class="inv-stock-controls"><button class="inv-adj-btn minus" onclick="adjustPartStock(${idx},-1)">−</button><span class="inv-qty-display">${qty}</span><button class="inv-adj-btn plus" onclick="adjustPartStock(${idx},+1)">＋</button></div></div>`;
+    const pn=(item.partNum||'').replace(/"/g,'&quot;');
+    const vn=(item.vendor||'').replace(/"/g,'&quot;');
+    const nn=(item.notes||'').replace(/"/g,'&quot;');
+    const ct=(item.cat||'').replace(/"/g,'&quot;');
+    const nm=item.name.replace(/"/g,'&quot;');
+    html+=`<div class="inv-card" id="invcard-${idx}"><div class="inv-card-header"><div><div class="inv-cat">${item.cat}</div><div class="inv-name">${item.name}</div></div><div style="display:flex;align-items:center;gap:4px;"><div class="inv-stock ${sc}">${sl}</div><button class="inv-action-btn" onclick="toggleEditPart(${idx})" title="Edit">✏️</button><button class="inv-action-btn delete" onclick="deletePart(${idx})" title="Delete">🗑</button></div></div>${meta?`<div class="inv-meta">${meta}</div>`:''}<div class="inv-stock-controls"><button class="inv-adj-btn minus" onclick="adjustPartStock(${idx},-1)">−</button><span class="inv-qty-display">${qty}</span><button class="inv-adj-btn plus" onclick="adjustPartStock(${idx},+1)">＋</button></div><div class="inv-edit-form" id="inv-edit-${idx}"><div class="inv-edit-row"><span class="inv-edit-label">Name</span><input class="inv-edit-input" id="ei-name-${idx}" value="${nm}"></div><div class="inv-edit-row"><span class="inv-edit-label">Category</span><input class="inv-edit-input" id="ei-cat-${idx}" value="${ct}"></div><div class="inv-edit-row"><span class="inv-edit-label">Part no.</span><input class="inv-edit-input" id="ei-pnum-${idx}" value="${pn}"></div><div class="inv-edit-row"><span class="inv-edit-label">Supplier</span><input class="inv-edit-input" id="ei-vendor-${idx}" value="${vn}"></div><div class="inv-edit-row"><span class="inv-edit-label">Notes</span><input class="inv-edit-input" id="ei-notes-${idx}" value="${nn}"></div><div style="display:flex;gap:8px;margin-top:8px;"><button class="log-submit-btn" onclick="saveEditPart(${idx})" style="flex:1;padding:8px;">Save</button><button class="log-submit-btn" onclick="toggleEditPart(${idx})" style="flex:1;padding:8px;background:var(--hull);border:1px solid rgba(255,255,255,0.2);">Cancel</button></div></div></div>`;
   });
   document.getElementById('inventoryList').innerHTML=html||'<div style="color:var(--text-dim);text-align:center;padding:20px;">No parts yet. Tap + Add Part to get started.</div>';
 }
@@ -1185,6 +1198,36 @@ function hideTaskDropdown() {
 function selectTask(name) {
   document.getElementById('fTask').value = name;
   hideTaskDropdown();
+}
+
+function toggleEditPart(idx) {
+  const form = document.getElementById('inv-edit-' + idx);
+  if (form) form.classList.toggle('open');
+}
+
+function saveEditPart(idx) {
+  const item = inventory[idx];
+  if (!item) return;
+  const name = document.getElementById('ei-name-' + idx).value.trim();
+  if (!name) { showToast('Part name required'); return; }
+  item.name    = name;
+  item.cat     = document.getElementById('ei-cat-'   + idx).value.trim() || item.cat;
+  item.partNum = document.getElementById('ei-pnum-'  + idx).value.trim() || null;
+  item.vendor  = document.getElementById('ei-vendor-'+ idx).value.trim() || null;
+  item.notes   = document.getElementById('ei-notes-' + idx).value.trim() || '';
+  saveState();
+  renderInventory();
+  showToast('✓ Part updated');
+}
+
+function deletePart(idx) {
+  const item = inventory[idx];
+  if (!item) return;
+  if (!confirm(`Delete "${item.name}" from inventory?`)) return;
+  inventory.splice(idx, 1);
+  saveState();
+  renderInventory();
+  showToast('Part removed');
 }
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
