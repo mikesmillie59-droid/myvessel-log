@@ -1019,12 +1019,28 @@ function saveState() {
 }
 
 function loadState() {
+  const mainExists = !!localStorage.getItem(STORAGE_KEY);
+  // Load persistent data first (baseline that survives Clear Saved Data)
+  try {
+    const ps = localStorage.getItem(STORAGE_KEY + '_persist');
+    if (ps) {
+      const pd = JSON.parse(ps);
+      if (pd.portHrs) { state.portHrs = pd.portHrs; document.getElementById('portHrs').value = pd.portHrs; }
+      if (pd.stbdHrs) { state.stbdHrs = pd.stbdHrs; document.getElementById('stbdHrs').value = pd.stbdHrs; }
+      if (pd.inventoryStock) pd.inventoryStock.forEach(s => { const item = inventory.find(i => i.id === s.id); if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; } });
+      if (pd.userAddedParts) pd.userAddedParts.forEach(p => { if (!inventory.find(i => i.id === p.id)) inventory.push(p); });
+      if (pd.engineTaskOverrides) pd.engineTaskOverrides.forEach(override => { const task = engineTasks.find(t => t.name === override.name); if (task) { task.port.lastDate=override.port.lastDate; task.port.lastHrs=override.port.lastHrs; task.port.nextHrs=override.port.nextHrs; task.port.nextDate=override.port.nextDate; task.stbd.lastDate=override.stbd.lastDate; task.stbd.lastHrs=override.stbd.lastHrs; task.stbd.nextHrs=override.stbd.nextHrs; task.stbd.nextDate=override.stbd.nextDate; } });
+      if (pd.scheduledTaskOverrides) pd.scheduledTaskOverrides.forEach(override => { const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded); if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; } });
+      if (pd.userAddedTasks) pd.userAddedTasks.forEach(t => { if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t); });
+    }
+  } catch(e) { console.warn('Persist load failed:', e); }
+  // Then load main session state — overwrites persist where present
+  if (!mainExists) return;
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return;
     const data = JSON.parse(saved);
-    if (data.portHrs) state.portHrs = data.portHrs;
-    if (data.stbdHrs) state.stbdHrs = data.stbdHrs;
+    if (data.portHrs) { state.portHrs = data.portHrs; document.getElementById('portHrs').value = data.portHrs; }
+    if (data.stbdHrs) { state.stbdHrs = data.stbdHrs; document.getElementById('stbdHrs').value = data.stbdHrs; }
     if (data.loggedTasks) state.loggedTasks = data.loggedTasks;
     if (data.engineTaskOverrides) {
       data.engineTaskOverrides.forEach(override => {
@@ -1059,27 +1075,7 @@ function loadState() {
         if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t);
       });
     }
-    document.getElementById('portHrs').value = state.portHrs;
-    document.getElementById('stbdHrs').value = state.stbdHrs;
-    sessionStorage.setItem(STORAGE_KEY + '_loaded', '1');
   } catch(e) { console.warn('Load failed:', e); }
-  // Always restore persistent data (survives Clear Saved Data)
-  try {
-    const ps = localStorage.getItem(STORAGE_KEY + '_persist');
-    if (ps) {
-      const pd = JSON.parse(ps);
-      // Always restore hours and inventory from persist — overwrite only if main state absent
-      if (!sessionStorage.getItem(STORAGE_KEY + '_loaded')) {
-        if (pd.portHrs) { state.portHrs = pd.portHrs; document.getElementById('portHrs').value = pd.portHrs; }
-        if (pd.stbdHrs) { state.stbdHrs = pd.stbdHrs; document.getElementById('stbdHrs').value = pd.stbdHrs; }
-      }
-      if (pd.inventoryStock) pd.inventoryStock.forEach(s => { const item = inventory.find(i => i.id === s.id); if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; } });
-      if (pd.userAddedParts) pd.userAddedParts.forEach(p => { if (!inventory.find(i => i.id === p.id)) inventory.push(p); });
-      if (pd.engineTaskOverrides) pd.engineTaskOverrides.forEach(override => { const task = engineTasks.find(t => t.name === override.name); if (task) { task.port.lastDate=override.port.lastDate; task.port.lastHrs=override.port.lastHrs; task.port.nextHrs=override.port.nextHrs; task.port.nextDate=override.port.nextDate; task.stbd.lastDate=override.stbd.lastDate; task.stbd.lastHrs=override.stbd.lastHrs; task.stbd.nextHrs=override.stbd.nextHrs; task.stbd.nextDate=override.stbd.nextDate; } });
-      if (pd.scheduledTaskOverrides) pd.scheduledTaskOverrides.forEach(override => { const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded); if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; } });
-      if (pd.userAddedTasks) pd.userAddedTasks.forEach(t => { if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t); });
-    }
-  } catch(e) { console.warn('Persist load failed:', e); }
 }
 
 function clearLocalData() {
