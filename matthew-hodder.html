@@ -961,13 +961,27 @@ function handleBoatPhoto(event) {
   if (!file || !file.type.startsWith('image/')) return;
   const r = new FileReader();
   r.onload = e => {
-    const dataUrl = e.target.result;
-    document.getElementById('boatPhotoImg').src = dataUrl;
-    document.getElementById('boatPhotoImg').style.display = 'block';
-    document.getElementById('boatPhotoPlaceholder').style.display = 'none';
-    document.getElementById('boatPhotoOverlay').style.display = 'block';
-    try { localStorage.setItem(STORAGE_KEY + '_boatphoto', dataUrl); } catch(e) {}
-    showToast('✓ Boat photo saved');
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxW = 800;
+      const scale = Math.min(1, maxW / img.width);
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      document.getElementById('boatPhotoImg').src = dataUrl;
+      document.getElementById('boatPhotoImg').style.display = 'block';
+      document.getElementById('boatPhotoPlaceholder').style.display = 'none';
+      document.getElementById('boatPhotoOverlay').style.display = 'block';
+      try {
+        localStorage.setItem(STORAGE_KEY + '_boatphoto', dataUrl);
+        showToast('✓ Boat photo saved');
+      } catch(e) {
+        showToast('Photo too large to save — try a smaller image');
+      }
+    };
+    img.src = e.target.result;
   };
   r.readAsDataURL(file);
   event.target.value = '';
