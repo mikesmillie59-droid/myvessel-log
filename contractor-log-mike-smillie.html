@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Contractor Log — Grand Banks 42</title>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>emailjs.init('GY4e_uE9KvDgmxFOJ');</script>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --deep:   #0B1C2E;
+  --hull:   #0D2135;
+  --wake:   #4DB8D4;
+  --brass:  #C8921A;
+  --brass-lt: #E8B84B;
+  --text:   #E8EDF2;
+  --text-dim: #7A9ABF;
+  --green:  #2EBA52;
+  --green-bg: rgba(46,186,82,0.12);
+  --red:    #E04B4A;
+  --red-bg: rgba(224,75,74,0.12);
+  --radius: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--deep);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+
+.header {
+  background: linear-gradient(180deg, var(--deep) 0%, rgba(13,31,60,0.95) 100%);
+  border-bottom: 1px solid rgba(200,146,42,0.3);
+  padding: 20px 20px 16px;
+  text-align: center;
+}
+.header-anchor { font-size: 28px; margin-bottom: 4px; }
+.header-title {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  color: var(--brass-lt);
+}
+.header-title span { color: var(--wake); }
+.header-vessel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+.header-badge {
+  display: inline-block;
+  background: rgba(200,146,42,0.12);
+  border: 1px solid rgba(200,146,42,0.3);
+  color: var(--brass-lt);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 3px 12px;
+  border-radius: 20px;
+  margin-top: 8px;
+  font-family: 'Archivo Black', sans-serif;
+}
+
+.container { max-width: 520px; margin: 0 auto; padding: 20px 16px; }
+
+.intro-box {
+  background: rgba(77,184,212,0.08);
+  border: 1px solid rgba(77,184,212,0.2);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.intro-box strong { color: var(--wake); }
+
+.form-section {
+  background: var(--hull);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 14px;
+}
+.section-title {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.07);
+}
+
+.form-row { margin-bottom: 14px; }
+.form-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  display: block;
+}
+.required { color: var(--brass-lt); margin-left: 2px; }
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  padding: 12px 14px;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  border-color: rgba(77,184,212,0.5);
+}
+.form-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A9ABF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+.form-textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+
+.engine-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.engine-chip {
+  flex: 1; min-width: 80px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+.engine-chip.selected {
+  background: rgba(77,184,212,0.15);
+  border-color: rgba(77,184,212,0.5);
+  color: var(--wake);
+}
+.engine-chip.selected.port { background: rgba(77,184,212,0.15); border-color: rgba(77,184,212,0.5); color: var(--wake); }
+.engine-chip.selected.stbd { background: rgba(200,146,42,0.12); border-color: rgba(200,146,42,0.4); color: var(--brass-lt); }
+.engine-chip.selected.gen  { background: rgba(46,186,82,0.12);  border-color: rgba(46,186,82,0.4);  color: var(--green); }
+
+.submit-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--brass) 0%, #E8A020 100%);
+  border: none;
+  border-radius: var(--radius);
+  color: #0B1C2E;
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  padding: 16px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  margin-top: 6px;
+}
+.submit-btn:hover { opacity: 0.9; }
+.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.success-screen {
+  display: none;
+  text-align: center;
+  padding: 40px 20px;
+}
+.success-icon { font-size: 56px; margin-bottom: 16px; }
+.success-title {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 22px;
+  color: var(--green);
+  margin-bottom: 8px;
+}
+.success-sub { font-size: 14px; color: var(--text-dim); line-height: 1.6; margin-bottom: 24px; }
+.success-vessel {
+  background: var(--hull);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: left;
+  margin-bottom: 20px;
+}
+.success-vessel strong { color: var(--text); display: block; margin-bottom: 4px; }
+.log-another-btn {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 24px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.error-msg { font-size: 12px; color: var(--red); margin-top: 4px; display: none; }
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--hull); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 24px; padding: 10px 20px; font-size: 14px;
+  opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  white-space: nowrap; z-index: 100;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-anchor">⚓</div>
+  <div class="header-title">VESSEL <span>LOG</span></div>
+  <div class="header-vessel">Grand Banks 42 &nbsp;·&nbsp; Twin Ford Lehmans &nbsp;·&nbsp; Pine Harbour</div>
+  <div class="header-badge">CONTRACTOR LOG FORM</div>
+</div>
+
+<div class="container">
+
+  <div class="intro-box">
+    Use this form to log any maintenance, repairs or inspections you've completed on <strong>Mike Smillie's Grand Banks 42</strong>. Your submission will be sent directly to the owner and added to the vessel's maintenance record.
+  </div>
+
+  <div id="mainForm">
+
+    <!-- TASK -->
+    <div class="form-section">
+      <div class="section-title">Task details</div>
+
+      <div class="form-row">
+        <label class="form-label">Task completed <span class="required">*</span></label>
+        <select class="form-select" id="fTask" onchange="onTaskChange(this.value)">
+          <option value="">— Select a task —</option>
+          <optgroup label="Engine tasks">
+            <option>Oil and Filters</option>
+            <option>Injector oil</option>
+            <option>Secondary Fuel Filter</option>
+            <option>Primary Fuel Filter</option>
+            <option>Transmission Oil</option>
+            <option>Zinc Pencils</option>
+            <option>Raw Water Impeller</option>
+            <option>Coolant</option>
+            <option>Fuelrite</option>
+            <option>Engine Oil Coolers</option>
+            <option>Heat Exchangers</option>
+            <option>Injector valves</option>
+            <option>Transmission Coolers</option>
+            <option>Valve Adjustment</option>
+            <option>Engine Mounts</option>
+            <option>Alternator/Drive Belts</option>
+            <option>Exhaust Elbow</option>
+          </optgroup>
+          <optgroup label="Scheduled maintenance">
+            <option>House Batteries</option>
+            <option>Start Batteries</option>
+            <option>Varnishing</option>
+            <option>Antifouling</option>
+            <option>Through-Hulls &amp; Seacocks</option>
+            <option>Bilge Pumps</option>
+            <option>Safety Gear (Flares/Extinguishers)</option>
+          </optgroup>
+          <optgroup label="Other">
+            <option>Electrical — other</option>
+            <option>Plumbing — other</option>
+            <option>Mechanical — other</option>
+            <option>Cosmetic / varnish — other</option>
+            <option>Safety equipment — other</option>
+            <option>Other (see notes)</option>
+          </optgroup>
+        </select>
+        <div class="error-msg" id="taskErr">Please select a task</div>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Custom task name <span style="color:var(--text-dim);font-weight:400;text-transform:none;letter-spacing:0;">(if not in list above)</span></label>
+        <input class="form-input" id="fCustomTask" placeholder="e.g. Replaced bilge pump float switch">
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Date completed <span class="required">*</span></label>
+        <input class="form-input" id="fDate" type="date">
+        <div class="error-msg" id="dateErr">Please select a date</div>
+      </div>
+    </div>
+
+    <!-- ENGINES -->
+    <div class="form-section">
+      <div class="section-title">Engine / system</div>
+      <div class="form-row">
+        <label class="form-label">Select all that apply <span class="required">*</span></label>
+        <div class="engine-chips">
+          <div class="engine-chip port" onclick="toggleChip(this)" data-eng="Port">⬅ PORT</div>
+          <div class="engine-chip stbd" onclick="toggleChip(this)" data-eng="Stbd">STBD ➡</div>
+          <div class="engine-chip gen"  onclick="toggleChip(this)" data-eng="General">⚙ GENERAL</div>
+        </div>
+        <div class="error-msg" id="engErr">Please select at least one</div>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Engine hours at time of service</label>
+        <input class="form-input" id="fHours" type="number" min="0" max="9999" placeholder="e.g. 1004">
+      </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="form-section">
+      <div class="section-title">Notes &amp; observations</div>
+      <div class="form-row">
+        <label class="form-label">Work performed / observations</label>
+        <textarea class="form-textarea" id="fNotes" placeholder="Describe the work done, any findings, parts used, follow-up recommended…"></textarea>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Parts / materials used</label>
+        <input class="form-input" id="fParts" placeholder="e.g. Ryco R2132P fuel filter x2">
+      </div>
+    </div>
+
+    <!-- CONTRACTOR -->
+    <div class="form-section">
+      <div class="section-title">Your details</div>
+      <div class="form-row">
+        <label class="form-label">Your name <span class="required">*</span></label>
+        <input class="form-input" id="fTech" placeholder="e.g. Boyd — Pine Harbour Electrical">
+        <div class="error-msg" id="techErr">Please enter your name</div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Company / trade</label>
+        <input class="form-input" id="fCompany" placeholder="e.g. Pine Harbour Marine Services">
+      </div>
+      <div class="form-row">
+        <label class="form-label">Contact number or email</label>
+        <input class="form-input" id="fContact" placeholder="Optional — for owner to follow up if needed">
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitLog()">Submit Maintenance Log</button>
+
+  </div>
+
+  <!-- SUCCESS SCREEN -->
+  <div class="success-screen" id="successScreen">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Log submitted</div>
+    <div class="success-sub">Your maintenance record has been sent directly to the vessel owner and will be added to the maintenance log.</div>
+    <div class="success-vessel" id="successSummary"></div>
+    <button class="log-another-btn" onclick="resetForm()">Log another task</button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function toggleChip(el) {
+  el.classList.toggle('selected');
+}
+
+function onTaskChange(val) {
+  document.getElementById('fCustomTask').style.display = val === 'Other (see notes)' || val === '' ? 'block' : (val.includes('other') ? 'block' : 'none');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function formatDate(d) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${String(d.getDate()).padStart(2,'0')}-${months[d.getMonth()]}-${d.getFullYear()}`;
+}
+
+// Set today's date
+window.onload = function() {
+  const today = new Date();
+  document.getElementById('fDate').value = today.toISOString().split('T')[0];
+  document.getElementById('fCustomTask').style.display = 'none';
+};
+
+function submitLog() {
+  // Validation
+  let valid = true;
+  const task = document.getElementById('fTask').value;
+  const customTask = document.getElementById('fCustomTask').value.trim();
+  const finalTask = task === 'Other (see notes)' || task.includes('other') ? (customTask || task) : (customTask || task);
+  const date = document.getElementById('fDate').value;
+  const tech = document.getElementById('fTech').value.trim();
+  const engines = [...document.querySelectorAll('.engine-chip.selected')].map(c => c.dataset.eng);
+
+  if (!task) { document.getElementById('taskErr').style.display = 'block'; valid = false; }
+  else { document.getElementById('taskErr').style.display = 'none'; }
+
+  if (!date) { document.getElementById('dateErr').style.display = 'block'; valid = false; }
+  else { document.getElementById('dateErr').style.display = 'none'; }
+
+  if (!engines.length) { document.getElementById('engErr').style.display = 'block'; valid = false; }
+  else { document.getElementById('engErr').style.display = 'none'; }
+
+  if (!tech) { document.getElementById('techErr').style.display = 'block'; valid = false; }
+  else { document.getElementById('techErr').style.display = 'none'; }
+
+  if (!valid) { showToast('Please complete all required fields'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  const dateStr = formatDate(new Date(date));
+  const hours = document.getElementById('fHours').value;
+  const notes = document.getElementById('fNotes').value.trim();
+  const parts = document.getElementById('fParts').value.trim();
+  const company = document.getElementById('fCompany').value.trim();
+  const contact = document.getElementById('fContact').value.trim();
+
+  const message = [
+    `CONTRACTOR LOG SUBMISSION`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `Vessel:       Grand Banks 42 — Mike Smillie`,
+    `Task:         ${finalTask}`,
+    `Date:         ${dateStr}`,
+    `Engine(s):    ${engines.join(' + ')}`,
+    hours ? `Engine hrs:   ${hours}` : null,
+    ``,
+    notes ? `Work done:\n${notes}` : null,
+    parts ? `Parts used:   ${parts}` : null,
+    ``,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `Technician:   ${tech}`,
+    company ? `Company:      ${company}` : null,
+    contact ? `Contact:      ${contact}` : null,
+  ].filter(l => l !== null).join('\n');
+
+  const params = {
+    vessel_name: 'Grand Banks 42 — Mike Smillie',
+    owner_name: 'Mike',
+    contact_email: 'mikesmillie59@gmail.com',
+    boat_type: 'Grand Banks 42',
+    engine_type: 'Twin Ford Lehmans',
+    message: message,
+    from_name: `${tech}${company ? ' — ' + company : ''}`,
+  };
+
+  emailjs.send('service_bj44lwp', 'template_jtv6pu9', params)
+    .then(() => {
+      // Show success screen
+      document.getElementById('mainForm').style.display = 'none';
+      const s = document.getElementById('successScreen');
+      s.style.display = 'block';
+      document.getElementById('successSummary').innerHTML = `
+        <strong>${finalTask}</strong>
+        ${dateStr} &nbsp;·&nbsp; ${engines.join(' + ')}${hours ? ' &nbsp;·&nbsp; ' + hours + ' hrs' : ''}<br>
+        <span style="color:var(--text-dim);font-size:12px;margin-top:4px;display:block;">Logged by ${tech}${company ? ' — ' + company : ''}</span>
+      `;
+    })
+    .catch(err => {
+      console.error('EmailJS error:', err);
+      showToast('Submission failed — please try again');
+      btn.disabled = false;
+      btn.textContent = 'Submit Maintenance Log';
+    });
+}
+
+function resetForm() {
+  document.getElementById('mainForm').style.display = 'block';
+  document.getElementById('successScreen').style.display = 'none';
+  document.getElementById('fTask').value = '';
+  document.getElementById('fCustomTask').value = '';
+  document.getElementById('fHours').value = '';
+  document.getElementById('fNotes').value = '';
+  document.getElementById('fParts').value = '';
+  document.getElementById('fTech').value = '';
+  document.getElementById('fCompany').value = '';
+  document.getElementById('fContact').value = '';
+  document.querySelectorAll('.engine-chip').forEach(c => c.classList.remove('selected'));
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = false;
+  btn.textContent = 'Submit Maintenance Log';
+  const today = new Date();
+  document.getElementById('fDate').value = today.toISOString().split('T')[0];
+}
+</script>
+</body>
+</html>
