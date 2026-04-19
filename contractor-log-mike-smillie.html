@@ -449,13 +449,27 @@ function submitLog() {
   ].filter(l => l !== null).join('\n');
 
   const params = {
-    vessel_name: 'Grand Banks 42 — Mike Smillie',
-    owner_name: 'Mike',
-    contact_email: 'mikesmillie59@gmail.com',
-    boat_type: 'Grand Banks 42',
-    engine_type: 'Twin Ford Lehmans',
-    message: message,
-    from_name: `${tech}${company ? ' — ' + company : ''}`,
+    owner_name:          'Mike Smillie',
+    owner_email:         'mikesmillie59@gmail.com',
+    email:               'mikesmillie59@gmail.com',
+    name:                'Mike Smillie',
+    country:             '*** CONTRACTOR LOG SUBMISSION ***',
+    vessel_name:         'Grand Banks 42 — Mike Smillie',
+    vessel_make:         '=== TASK: ' + finalTask + ' ===',
+    vessel_model:        'Date: ' + dateStr,
+    vessel_year:         'Engine(s): ' + engines.join(' + '),
+    vessel_length:       hours ? 'Hours: ' + hours : 'Hours: not recorded',
+    vessel_type:         '—',
+    home_port:           '—',
+    engine_config:       'Twin Ford Lehmans',
+    engine_make:         '—',
+    port_hours:          hours || '—',
+    stbd_hours:          hours || '—',
+    oil_interval:        '—',
+    maintenance_history: notes || 'No notes provided',
+    spare_parts:         parts || 'None recorded',
+    additional_notes:    'TECHNICIAN: ' + tech + (company ? '\nCompany: ' + company : '') + (contact ? '\nContact: ' + contact : ''),
+    hear_about:          '—',
   };
 
   emailjs.send('service_bj44lwp', 'template_jtv6pu9', params)
