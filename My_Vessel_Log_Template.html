@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a1628">
-<title>My Vessel Log</title>
+<title>Vessel Maintenance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -20,12 +20,14 @@
     --brass-lt: #e8b84b;
     --wake:     #4db8d4;
     --wake-lt:  #7dd4e8;
+    --foam:     #e8f4f8;
     --red:      #e05252;
     --red-bg:   rgba(224,82,82,0.12);
     --amber:    #e09a2a;
     --amber-bg: rgba(224,154,42,0.12);
     --green:    #3dba7e;
     --green-bg: rgba(61,186,126,0.12);
+    --grey-bg:  rgba(255,255,255,0.05);
     --text:     #e8f4f8;
     --text-dim: #8aafc4;
     --radius:   12px;
@@ -36,13 +38,16 @@
 
   body {
     font-family: 'Archivo', sans-serif;
-    background: var(--ocean); color: var(--text);
-    min-height: 100vh; overflow-x: hidden; position: relative;
-    padding-top: 36px;
+    background: var(--ocean);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
   }
 
   body::before {
-    content: ''; position: fixed; inset: 0;
+    content: '';
+    position: fixed; inset: 0;
     background:
       radial-gradient(ellipse 80% 50% at 20% 10%, rgba(30,64,128,0.4) 0%, transparent 60%),
       radial-gradient(ellipse 60% 40% at 80% 80%, rgba(13,31,60,0.6) 0%, transparent 60%);
@@ -55,16 +60,34 @@
   .header {
     background: linear-gradient(180deg, var(--deep) 0%, rgba(13,31,60,0.95) 100%);
     border-bottom: 1px solid rgba(200,146,42,0.3);
-    padding: 16px 20px 14px; position: sticky; top: 0; z-index: 100;
+    padding: 16px 20px 14px;
+    position: sticky; top: 0; z-index: 100;
     backdrop-filter: blur(12px);
   }
-  .vessel-name { font-family: 'Archivo Black', sans-serif; font-size: 20px; letter-spacing: 0.04em; color: var(--brass-lt); }
+  .header-top { display: flex; align-items: center; justify-content: space-between; }
+  .vessel-name {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 20px; letter-spacing: 0.04em;
+    color: var(--brass-lt);
+  }
   .vessel-name span { color: var(--wake); }
-  .vessel-subtitle { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+  .header-date { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+  .boat-photo-wrap { width: 100%; margin-top: 12px; border-radius: 10px; overflow: hidden; position: relative; aspect-ratio: 16/5; background: var(--hull); border: 1px solid rgba(61,191,184,0.15); cursor: pointer; }
+  .boat-photo-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .boat-photo-placeholder { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 100%; color: var(--text-dim); font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+  .boat-photo-overlay { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.8); font-size: 10px; padding: 3px 8px; border-radius: 20px; cursor: pointer; }
+  .boat-photo-controls { position: absolute; bottom: 8px; right: 8px; display: none; flex-direction: column; gap: 4px; }
+  .boat-photo-wrap:hover .boat-photo-controls,
+  .boat-photo-wrap.show-controls .boat-photo-controls { display: flex; }
+  .photo-pos-btn { background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.25); color: rgba(255,255,255,0.85); font-size: 10px; padding: 3px 8px; border-radius: 12px; cursor: pointer; white-space: nowrap; text-align: center; }
+  .photo-pos-btn.active { background: rgba(61,191,184,0.4); border-color: rgba(61,191,184,0.6); }
+
   .hours-bar { display: flex; gap: 10px; margin-top: 12px; }
   .hours-pill {
-    flex: 1; background: var(--hull); border: 1px solid rgba(77,184,212,0.2);
-    border-radius: 8px; padding: 7px 12px; display: flex; align-items: center; justify-content: space-between;
+    flex: 1; background: var(--hull);
+    border: 1px solid rgba(77,184,212,0.2);
+    border-radius: 8px; padding: 7px 12px;
+    display: flex; align-items: center; justify-content: space-between;
   }
   .hours-pill-label { font-size: 10px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.08em; }
   .hours-pill input {
@@ -73,7 +96,7 @@
     color: var(--wake); width: 60px; text-align: right;
   }
 
-  /* ── Nav ── */
+  /* ── Nav tabs ── */
   .nav-tabs {
     display: flex; background: var(--deep);
     border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -81,9 +104,11 @@
   }
   .nav-tabs::-webkit-scrollbar { display: none; }
   .tab {
-    flex: 1; min-width: 76px; padding: 12px 6px; text-align: center;
-    font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
-    color: var(--text-dim); cursor: pointer; border-bottom: 2px solid transparent;
+    flex: 1; min-width: 76px; padding: 12px 6px;
+    text-align: center; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--text-dim); cursor: pointer;
+    border-bottom: 2px solid transparent;
     transition: all 0.2s; white-space: nowrap;
   }
   .tab.active { color: var(--brass-lt); border-bottom-color: var(--brass); }
@@ -95,9 +120,11 @@
 
   /* ── Alert banner ── */
   .alert-banner {
-    background: var(--red-bg); border: 1px solid rgba(224,82,82,0.3);
-    border-radius: var(--radius); padding: 12px 14px; margin-bottom: 12px;
-    display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s ease;
+    background: var(--red-bg);
+    border: 1px solid rgba(224,82,82,0.3);
+    border-radius: var(--radius); padding: 12px 14px;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 10px;
+    animation: slideIn 0.3s ease;
   }
   .alert-banner.amber { background: var(--amber-bg); border-color: rgba(224,154,42,0.3); }
   .alert-icon { font-size: 18px; flex-shrink: 0; }
@@ -105,38 +132,43 @@
   .alert-text strong { display: block; font-size: 12px; color: var(--text-dim); font-weight: 500; margin-bottom: 1px; }
 
   /* ── Section header ── */
-  .sec-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; margin-top: 4px; }
-  .sec-title { font-family: 'Archivo Black', sans-serif; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
-  .sec-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; background: var(--hull); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 2px 8px; color: var(--text-dim); }
-  .boat-photo-wrap { width: 100%; margin-top: 12px; border-radius: 10px; overflow: hidden; position: relative; aspect-ratio: 16/5; background: var(--hull); border: 1px solid rgba(61,191,184,0.15); cursor: pointer; }
-  .boat-photo-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .boat-photo-placeholder { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 100%; color: var(--text-dim); font-size: 12px; font-family: 'JetBrains Mono', monospace; min-height: 80px; }
-  .boat-photo-overlay { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.8); font-size: 10px; padding: 3px 8px; border-radius: 20px; cursor: pointer; }
-  .boat-photo-controls { position: absolute; bottom: 8px; right: 8px; display: none; flex-direction: column; gap: 4px; }
-  .boat-photo-wrap:hover .boat-photo-controls,
-  .boat-photo-wrap.show-controls .boat-photo-controls { display: flex; }
-  .photo-pos-btn { background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.25); color: rgba(255,255,255,0.85); font-size: 10px; padding: 3px 8px; border-radius: 12px; cursor: pointer; white-space: nowrap; text-align: center; }
-  .photo-pos-btn.active { background: rgba(61,191,184,0.4); border-color: rgba(61,191,184,0.6); }
+  .sec-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; margin-top: 4px;
+  }
+  .sec-title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .sec-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; background: var(--hull);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px; padding: 2px 8px; color: var(--text-dim);
+  }
   .add-btn { background: rgba(200,146,42,0.15); border: 1px solid rgba(200,146,42,0.4); color: #E8B84B; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; padding: 5px 14px; border-radius: 20px; cursor: pointer; transition: background 0.2s; font-family: 'Archivo Black', sans-serif; }
   .add-btn:hover { background: rgba(200,146,42,0.28); }
-  .single-engine .engine-header-pill.stbd,
-  .single-engine .eng-col.stbd { display: none; }
-  .single-engine .eng-col.port { width: 100%; }
 
   /* ── Task card ── */
   .task-card {
-    background: var(--hull); border: 1px solid rgba(255,255,255,0.07);
-    border-radius: var(--radius); margin-bottom: 8px; overflow: hidden;
-    cursor: pointer; transition: transform 0.15s; animation: slideIn 0.25s ease both;
+    background: var(--hull);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: var(--radius); margin-bottom: 8px;
+    overflow: hidden; cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+    animation: slideIn 0.25s ease both;
   }
   .task-card:active { transform: scale(0.98); }
   .task-card.overdue  { border-left: 3px solid var(--red);   background: linear-gradient(90deg, rgba(224,82,82,0.08) 0%, var(--hull) 40%); }
   .task-card.due-soon { border-left: 3px solid var(--amber); background: linear-gradient(90deg, rgba(224,154,42,0.08) 0%, var(--hull) 40%); }
   .task-card.ok       { border-left: 3px solid var(--green); }
   .task-card.no-sched { border-left: 3px solid rgba(255,255,255,0.15); }
+
   .task-main { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
   .task-check {
-    width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2);
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.2);
     flex-shrink: 0; display: flex; align-items: center; justify-content: center;
     transition: all 0.2s; font-size: 11px;
   }
@@ -144,18 +176,29 @@
   .task-card.due-soon .task-check { border-color: var(--amber); }
   .task-card.ok       .task-check { border-color: rgba(61,186,126,0.4); }
   .task-card.logged   .task-check { background: var(--green); border-color: var(--green); color: white; }
+
   .task-info { flex: 1; min-width: 0; }
   .task-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .task-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
-  .task-status { font-size: 11px; font-family: 'JetBrains Mono', monospace; padding: 4px 8px; border-radius: 6px; font-weight: 500; flex-shrink: 0; text-align: right; max-width: 90px; }
+
+  .task-status {
+    font-size: 11px; font-family: 'JetBrains Mono', monospace;
+    padding: 4px 8px; border-radius: 6px; font-weight: 500; flex-shrink: 0; text-align: right; max-width: 90px;
+  }
   .task-card.overdue  .task-status { background: var(--red-bg);   color: var(--red); }
   .task-card.due-soon .task-status { background: var(--amber-bg); color: var(--amber); }
   .task-card.ok       .task-status { background: var(--green-bg); color: var(--green); }
   .task-card.no-sched .task-status { background: rgba(255,255,255,0.05); color: var(--text-dim); }
 
   /* ── Combined engine view ── */
-  .engines-header { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
-  .engine-header-pill { border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; }
+  .engines-header {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; margin-bottom: 14px;
+  }
+  .engine-header-pill {
+    border-radius: 10px; padding: 10px 14px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
   .engine-header-pill.port { background: rgba(77,184,212,0.1); border: 1px solid rgba(77,184,212,0.25); }
   .engine-header-pill.stbd { background: rgba(200,146,42,0.1); border: 1px solid rgba(200,146,42,0.25); }
   .engine-pill-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; font-family: 'JetBrains Mono', monospace; }
@@ -164,21 +207,33 @@
   .engine-pill-val { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 500; color: var(--text); }
   .engine-pill-sub { font-size: 10px; color: var(--text-dim); }
 
+  /* Combined engine row card */
   .eng-row-card {
-    background: var(--hull); border: 1px solid rgba(255,255,255,0.07);
-    border-radius: var(--radius); margin-bottom: 8px; overflow: hidden; animation: slideIn 0.25s ease both;
+    background: var(--hull);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: var(--radius); margin-bottom: 8px;
+    overflow: hidden; animation: slideIn 0.25s ease both;
   }
   .eng-row-name {
-    padding: 9px 14px 6px; font-size: 13px; font-weight: 700;
+    padding: 9px 14px 6px;
+    font-size: 13px; font-weight: 700;
     border-bottom: 1px solid rgba(255,255,255,0.06);
-    display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer;
   }
   .eng-row-name:active { background: rgba(255,255,255,0.03); }
   .eng-row-freq { font-size: 10px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-weight: 400; }
-  .eng-row-cols { display: grid; grid-template-columns: 1fr 1fr; }
-  .eng-col { padding: 8px 12px; }
+  .eng-row-cols {
+    display: grid; grid-template-columns: 1fr 1fr;
+  }
+  .eng-col {
+    padding: 8px 12px;
+  }
   .eng-col.port { border-right: 1px solid rgba(255,255,255,0.06); }
-  .eng-col-header { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; font-family: 'JetBrains Mono', monospace; margin-bottom: 4px; }
+  .eng-col-header {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+    font-family: 'JetBrains Mono', monospace; margin-bottom: 4px;
+  }
   .eng-col.port .eng-col-header { color: var(--wake); }
   .eng-col.stbd .eng-col-header { color: var(--brass-lt); }
   .eng-status-pill {
@@ -191,31 +246,69 @@
   .eng-status-pill.ok       { background: var(--green-bg); color: var(--green); }
   .eng-status-pill.no-sched { background: rgba(255,255,255,0.05); color: var(--text-dim); }
   .eng-col-detail { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
-  .eng-row-note { padding: 5px 14px 8px; font-size: 11px; color: var(--text-dim); border-top: 1px solid rgba(255,255,255,0.04); font-style: italic; }
+  .eng-row-note {
+    padding: 5px 14px 8px;
+    font-size: 11px; color: var(--text-dim);
+    border-top: 1px solid rgba(255,255,255,0.04);
+    font-style: italic;
+  }
   .eng-row-card.overdue-any  { border-left: 3px solid var(--red); }
   .eng-row-card.due-soon-any { border-left: 3px solid var(--amber); }
   .eng-row-card.ok-all       { border-left: 3px solid var(--green); }
   .eng-row-card.no-sched-all { border-left: 3px solid rgba(255,255,255,0.15); }
 
-  /* ── Log ── */
+  /* Log entry styles */
   .log-entry {
     background: var(--hull); border: 1px solid rgba(255,255,255,0.07);
-    border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px; animation: slideIn 0.25s ease;
+    border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px;
+    animation: slideIn 0.25s ease;
   }
   .log-entry-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
   .log-entry-task { font-size: 14px; font-weight: 600; }
   .log-entry-date { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
   .log-entry-meta { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
-  .log-entry-tag { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; padding: 2px 7px; border-radius: 4px; margin-right: 4px; margin-top: 4px; }
+  .log-entry-tag {
+    display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+    padding: 2px 7px; border-radius: 4px; margin-right: 4px; margin-top: 4px;
+  }
   .tag-port  { background: rgba(77,184,212,0.15);  color: var(--wake); }
   .tag-stbd  { background: rgba(200,146,42,0.15);  color: var(--brass-lt); }
   .tag-gen   { background: rgba(61,186,126,0.15);  color: var(--green); }
 
+  /* ── Export ── */
+  .export-box {
+    background: var(--hull); border: 1px solid rgba(200,146,42,0.25);
+    border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px;
+  }
+  .export-title { font-family: 'Archivo Black', sans-serif; font-size: 14px; color: var(--brass-lt); margin-bottom: 6px; }
+  .export-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; line-height: 1.5; }
+  .export-text {
+    background: var(--ocean); border: 1px solid rgba(77,184,212,0.2);
+    border-radius: 10px; padding: 12px; font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; line-height: 1.7; color: var(--wake-lt); white-space: pre-wrap;
+    word-break: break-word; min-height: 60px;
+  }
+  .btn-copy {
+    width: 100%; padding: 13px;
+    background: var(--steel); border: 1px solid rgba(77,184,212,0.3);
+    border-radius: var(--radius); color: var(--wake);
+    font-family: 'Archivo Black', sans-serif; font-size: 13px; letter-spacing: 0.05em;
+    cursor: pointer; margin-top: 10px; transition: background 0.2s;
+  }
+  .btn-copy:active { background: var(--nav); }
+  .btn-copy.copied { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+
   /* ── Inventory ── */
-  .inv-card { background: var(--hull); border: 1px solid rgba(255,255,255,0.07); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px; }
+  .inv-card {
+    background: var(--hull); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px;
+  }
   .inv-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
   .inv-name { font-size: 14px; font-weight: 600; }
-  .inv-stock { font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 3px 9px; border-radius: 6px; }
+  .inv-stock {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    padding: 3px 9px; border-radius: 6px;
+  }
   .inv-stock.low  { background: var(--red-bg);   color: var(--red); }
   .inv-stock.ok   { background: var(--green-bg); color: var(--green); }
   .inv-stock.none { background: var(--amber-bg); color: var(--amber); }
@@ -234,16 +327,11 @@
   .inv-edit-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
   .inv-edit-label { font-size: 11px; color: var(--text-dim); min-width: 72px; }
   .inv-edit-input { flex: 1; background: var(--deep); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; color: var(--text); font-size: 13px; padding: 5px 8px; }
-  .inv-cat { display: inline-block; font-size: 10px; letter-spacing: 0.05em; background: var(--steel); color: var(--wake-lt); padding: 2px 7px; border-radius: 4px; margin-bottom: 5px; font-weight: 600; }
-
-  /* ── Export ── */
-  .export-box { background: var(--hull); border: 1px solid rgba(200,146,42,0.25); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; }
-  .export-title { font-family: 'Archivo Black', sans-serif; font-size: 14px; color: var(--brass-lt); margin-bottom: 6px; }
-  .export-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; line-height: 1.5; }
-  .export-text { background: var(--ocean); border: 1px solid rgba(77,184,212,0.2); border-radius: 10px; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.7; color: var(--wake-lt); white-space: pre-wrap; word-break: break-word; min-height: 60px; }
-  .btn-copy { width: 100%; padding: 13px; background: var(--steel); border: 1px solid rgba(77,184,212,0.3); border-radius: var(--radius); color: var(--wake); font-family: 'Archivo Black', sans-serif; font-size: 13px; letter-spacing: 0.05em; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
-  .btn-copy:active { background: var(--nav); }
-  .btn-copy.copied { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+  .inv-cat {
+    display: inline-block; font-size: 10px; letter-spacing: 0.05em;
+    background: var(--steel); color: var(--wake-lt); padding: 2px 7px;
+    border-radius: 4px; margin-bottom: 5px; font-weight: 600;
+  }
 
   /* ── Bottom nav ── */
   .bottom-nav {
@@ -253,66 +341,155 @@
     display: flex; padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
     max-width: 480px; margin: 0 auto;
   }
-  @media (min-width: 480px) { .bottom-nav { left: 50%; transform: translateX(-50%); width: 480px; } }
-  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 0; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; color: var(--text-dim); transition: color 0.2s; }
+  @media (min-width: 480px) {
+    .bottom-nav { left: 50%; transform: translateX(-50%); width: 480px; }
+  }
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 3px; cursor: pointer; padding: 4px 0;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+    color: var(--text-dim); transition: color 0.2s;
+  }
   .nav-item.active { color: var(--brass-lt); }
   .nav-icon { font-size: 20px; }
   .nav-item.active .nav-icon { filter: drop-shadow(0 0 6px rgba(232,184,75,0.5)); }
 
   /* FAB */
-  .fab { position: fixed; bottom: calc(72px + env(safe-area-inset-bottom)); right: 20px; width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--brass) 0%, var(--brass-lt) 100%); border: none; cursor: pointer; z-index: 99; display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--ocean); box-shadow: 0 4px 20px rgba(200,146,42,0.4); transition: transform 0.2s; }
-  .fab:active { transform: scale(0.92); }
+  .fab {
+    position: fixed; bottom: calc(72px + env(safe-area-inset-bottom)); right: 20px;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--brass) 0%, var(--brass-lt) 100%);
+    border: none; cursor: pointer; z-index: 99;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; color: var(--ocean);
+    box-shadow: 0 4px 20px rgba(200,146,42,0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .fab:active { transform: scale(0.92); box-shadow: 0 2px 10px rgba(200,146,42,0.3); }
 
   /* ── Log form ── */
-  .log-overlay { position: fixed; inset: 0; background: rgba(10,22,40,0.85); z-index: 200; display: none; align-items: flex-end; backdrop-filter: blur(4px); }
+  .log-overlay {
+    position: fixed; inset: 0; background: rgba(10,22,40,0.85);
+    z-index: 200; display: none; align-items: flex-end;
+    backdrop-filter: blur(4px);
+  }
   .log-overlay.open { display: flex; }
-  .log-panel { width: 100%; max-width: 480px; margin: 0 auto; background: var(--deep); border-top: 1px solid rgba(200,146,42,0.3); border-radius: 20px 20px 0 0; padding: 20px 20px 40px; animation: slideUp 0.3s cubic-bezier(0.34,1.2,0.64,1); max-height: 90vh; overflow-y: auto; }
+  .log-panel {
+    width: 100%; max-width: 480px; margin: 0 auto;
+    background: var(--deep);
+    border-top: 1px solid rgba(200,146,42,0.3);
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px 40px;
+    animation: slideUp 0.3s cubic-bezier(0.34,1.2,0.64,1);
+    max-height: 90vh; overflow-y: auto;
+  }
   .log-handle { width: 36px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; margin: 0 auto 18px; }
   .log-title { font-family: 'Archivo Black', sans-serif; font-size: 16px; color: var(--brass-lt); margin-bottom: 4px; }
   .log-subtitle { font-size: 12px; color: var(--text-dim); margin-bottom: 18px; }
+
   .form-row { position: relative; margin-bottom: 14px; }
   .form-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; display: block; }
-  .form-input { width: 100%; background: var(--hull); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 11px 14px; color: var(--text); font-family: 'Archivo', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s; }
+  .form-input {
+    width: 100%; background: var(--hull); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 11px 14px; color: var(--text);
+    font-family: 'Archivo', sans-serif; font-size: 14px; outline: none;
+    transition: border-color 0.2s;
+  }
   .form-input:focus { border-color: var(--wake); }
   .form-input::placeholder { color: var(--text-dim); }
   textarea.form-input { resize: none; height: 72px; line-height: 1.5; }
   .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+
   .engine-chips { display: flex; gap: 8px; flex-wrap: wrap; }
-  .engine-chip { padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; color: var(--text-dim); }
+  .engine-chip {
+    padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15);
+    font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    color: var(--text-dim);
+  }
   .engine-chip.selected { background: var(--steel); border-color: var(--wake); color: var(--wake); }
-  .btn-log { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--brass) 0%, var(--brass-lt) 100%); border: none; border-radius: var(--radius); color: var(--ocean); font-family: 'Archivo Black', sans-serif; font-size: 15px; letter-spacing: 0.04em; cursor: pointer; margin-top: 6px; }
+
+  .btn-log {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--brass) 0%, var(--brass-lt) 100%);
+    border: none; border-radius: var(--radius); color: var(--ocean);
+    font-family: 'Archivo Black', sans-serif; font-size: 15px; letter-spacing: 0.04em;
+    cursor: pointer; transition: opacity 0.2s; margin-top: 6px;
+  }
   .btn-log:active { opacity: 0.85; }
-  .btn-cancel { width: 100%; padding: 12px; background: none; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius); color: var(--text-dim); font-size: 14px; cursor: pointer; margin-top: 8px; }
+  .btn-cancel {
+    width: 100%; padding: 12px; background: none;
+    border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius);
+    color: var(--text-dim); font-size: 14px; cursor: pointer; margin-top: 8px;
+  }
 
   /* ── Photo notes ── */
-  .photo-upload-area { border: 2px dashed rgba(77,184,212,0.3); border-radius: var(--radius); padding: 14px; text-align: center; cursor: pointer; background: rgba(77,184,212,0.03); position: relative; }
+  .photo-upload-area {
+    border: 2px dashed rgba(77,184,212,0.3); border-radius: var(--radius);
+    padding: 14px; text-align: center; cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: rgba(77,184,212,0.03); position: relative;
+  }
+  .photo-upload-area:active { border-color: var(--wake); background: rgba(77,184,212,0.08); }
   .photo-upload-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
   .photo-upload-icon { font-size: 24px; margin-bottom: 4px; }
   .photo-upload-label { font-size: 12px; color: var(--text-dim); }
   .photo-upload-label span { color: var(--wake); font-weight: 600; }
   .photo-previews { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-  .photo-thumb-wrap { position: relative; width: 72px; height: 72px; border-radius: 8px; overflow: hidden; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1); }
+  .photo-thumb-wrap {
+    position: relative; width: 72px; height: 72px; border-radius: 8px;
+    overflow: hidden; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1);
+    animation: slideIn 0.2s ease;
+  }
   .photo-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
-  .photo-thumb-del { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: rgba(10,22,40,0.85); border: none; color: white; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .photo-thumb-del {
+    position: absolute; top: 3px; right: 3px; width: 18px; height: 18px;
+    border-radius: 50%; background: rgba(10,22,40,0.85); border: none; color: white;
+    font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
   .log-photo-strip { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-  .log-photo-thumb { width: 60px; height: 60px; border-radius: 6px; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
-  .photo-count-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--wake); background: rgba(77,184,212,0.12); border-radius: 6px; padding: 2px 7px; margin-top: 6px; }
+  .log-photo-thumb {
+    width: 60px; height: 60px; border-radius: 6px; object-fit: cover;
+    border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: transform 0.15s;
+  }
+  .log-photo-thumb:active { transform: scale(0.95); }
+  .photo-count-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--wake); background: rgba(77,184,212,0.12);
+    border-radius: 6px; padding: 2px 7px; margin-top: 6px;
+  }
 
   /* ── Photo viewer ── */
-  .photo-viewer { position: fixed; inset: 0; background: rgba(5,10,20,0.97); z-index: 500; display: none; flex-direction: column; align-items: center; justify-content: center; }
+  .photo-viewer {
+    position: fixed; inset: 0; background: rgba(5,10,20,0.97);
+    z-index: 500; display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
   .photo-viewer.open { display: flex; }
-  .photo-viewer-img { max-width: 100%; max-height: calc(100vh - 120px); border-radius: 8px; object-fit: contain; }
-  .photo-viewer-bar { position: absolute; top: 0; left: 0; right: 0; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(180deg, rgba(5,10,20,0.9) 0%, transparent 100%); }
+  .photo-viewer-img { max-width: 100%; max-height: calc(100vh - 120px); border-radius: 8px; object-fit: contain; animation: slideIn 0.2s ease; }
+  .photo-viewer-bar {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(180deg, rgba(5,10,20,0.9) 0%, transparent 100%);
+  }
   .photo-viewer-title { font-size: 13px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
-  .photo-viewer-close { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .photo-viewer-close {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(255,255,255,0.1); border: none; color: white;
+    font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
   .photo-viewer-nav { position: absolute; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; gap: 12px; }
-  .photo-nav-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.3); cursor: pointer; }
+  .photo-nav-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: background 0.2s; cursor: pointer; }
   .photo-nav-dot.active { background: var(--wake); }
   .photo-viewer-arrows { position: absolute; top: 50%; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 12px; transform: translateY(-50%); pointer-events: none; }
   .photo-arrow { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 18px; cursor: pointer; pointer-events: all; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
 
   /* ── Stock adjustment ── */
-  .stock-toggle { display: flex; align-items: center; justify-content: space-between; background: var(--hull); border: 1px solid rgba(77,184,212,0.2); border-radius: var(--radius); padding: 11px 14px; cursor: pointer; }
+  .stock-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--hull); border: 1px solid rgba(77,184,212,0.2);
+    border-radius: var(--radius); padding: 11px 14px; cursor: pointer; transition: background 0.2s;
+  }
+  .stock-toggle:active { background: var(--steel); }
   .stock-toggle-label { font-size: 13px; color: var(--text-dim); }
   .stock-toggle-label span { color: var(--wake); font-weight: 600; }
   .stock-toggle-arrow { font-size: 12px; color: var(--text-dim); transition: transform 0.2s; }
@@ -334,9 +511,16 @@
   .stock-adj-change.removing { color: var(--red); }
 
   /* Toast */
-  .toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--green); color: var(--ocean); font-family: 'Archivo Black', sans-serif; font-size: 13px; padding: 10px 20px; border-radius: 20px; opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 300; white-space: nowrap; }
+  .toast {
+    position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-20px);
+    background: var(--green); color: var(--ocean);
+    font-family: 'Archivo Black', sans-serif; font-size: 13px;
+    padding: 10px 20px; border-radius: 20px;
+    opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 300; white-space: nowrap;
+  }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+  /* Misc */
   .divider { height: 1px; background: rgba(255,255,255,0.06); margin: 14px 0; }
   .empty { text-align: center; padding: 40px 20px; color: var(--text-dim); }
   .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
@@ -347,27 +531,15 @@
 </style>
 </head>
 <body>
-<div id="demo-banner" style="
-  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
-  background: #C8922A; color: #0B1C2E;
-  text-align: center; padding: 0.5rem 1rem;
-  font-family: Arial, sans-serif; font-size: 0.85rem; font-weight: 600;
-  display: flex; align-items: center; justify-content: center; gap: 1rem;
-">
-  <span>⚓ This is a demo — data saves to your browser only and will not persist between devices.</span>
-  <a href="https://mikesmillie59-droid.github.io/myvessel-log/Vessel_Log_Intake_Form.html"
-     style="background: #0B1C2E; color: #C8922A; padding: 0.25rem 0.75rem; border-radius: 3px; text-decoration: none; font-size: 0.8rem; white-space: nowrap;">
-    Order your app →
-  </a>
-  <button onclick="document.getElementById('demo-banner').style.display='none'"
-     style="background: none; border: none; color: #0B1C2E; font-size: 1.1rem; cursor: pointer; padding: 0; line-height: 1;">✕</button>
-</div>
 <div class="app">
 
+  <!-- Header -->
   <div class="header">
-    <div>
-      <div class="vessel-name">⚓ MY <span>VESSEL LOG</span></div>
-      <div class="vessel-subtitle" id="headerDate">—</div>
+    <div class="header-top">
+      <div>
+        <div class="vessel-name">⚓ VESSEL <span>LOG</span></div>
+        <div class="header-date" id="headerDate">—</div>
+      </div>
     </div>
     <div class="boat-photo-wrap" onclick="document.getElementById('boatPhotoInput').click()" id="boatPhotoWrap">
       <div class="boat-photo-placeholder" id="boatPhotoPlaceholder">📷 Tap to add your boat photo</div>
@@ -383,15 +555,19 @@
     <div class="hours-bar">
       <div class="hours-pill">
         <span class="hours-pill-label">PORT HRS</span>
-        <input type="number" id="portHrs" value="0" min="0" max="99999" onchange="updateHours()">
+        <input type="number" id="portHrs" value="0" min="0" max="9999" onchange="updateHours()">
       </div>
       <div class="hours-pill">
         <span class="hours-pill-label">STBD HRS</span>
-        <input type="number" id="stbdHrs" value="0" min="0" max="99999" onchange="updateHours()">
+        <input type="number" id="stbdHrs" value="0" min="0" max="9999" onchange="updateHours()">
       </div>
     </div>
   </div>
 
+  <div style="background:rgba(200,146,42,0.15);border-bottom:1px solid rgba(200,146,42,0.3);padding:8px 16px;text-align:center;font-size:12px;color:#E8B84B;font-family:'JetBrains Mono',monospace;">
+    ⚓ DEMO — This is a template preview. Customer data will be pre-loaded.
+  </div>
+  <!-- Nav tabs -->
   <div class="nav-tabs">
     <div class="tab active" onclick="showTab('dashboard')"><span class="tab-icon">📊</span>Dash</div>
     <div class="tab" onclick="showTab('engine')"><span class="tab-icon">⚙️</span>Engines</div>
@@ -430,17 +606,17 @@
     <div id="dashScheduled"></div>
   </div>
 
-  <!-- ENGINES -->
+  <!-- ENGINES — combined side-by-side -->
   <div class="section" id="tab-engine">
     <div class="engines-header">
       <div class="engine-header-pill port">
         <div class="engine-pill-label">⬅ PORT ENGINE</div>
-        <div class="engine-pill-val" id="portHrsDisplay">0 hrs</div>
+        <div class="engine-pill-val" id="portHrsDisplay">349 hrs</div>
         <div class="engine-pill-sub">Current hours</div>
       </div>
       <div class="engine-header-pill stbd">
         <div class="engine-pill-label">STBD ENGINE ➡</div>
-        <div class="engine-pill-val" id="stbdHrsDisplay">0 hrs</div>
+        <div class="engine-pill-val" id="stbdHrsDisplay">354 hrs</div>
         <div class="engine-pill-sub">Current hours</div>
       </div>
     </div>
@@ -487,35 +663,35 @@
   <div class="section" id="tab-export">
     <div class="export-box">
       <div class="export-title">📤 Export Summary</div>
-      <div class="export-sub">Copy the summary below and paste it into an email to <em style="color:var(--wake)">mikesmillie59@gmail.com</em> — we'll update your app within 48 hours.</div>
+      <div class="export-sub">Open Claude, upload your spreadsheet, paste this summary and say <em style="color:var(--wake)">"please update my spreadsheet"</em>. Then ask Claude to rebuild the app and upload to GitHub.</div>
       <div class="export-text" id="exportText">Log tasks first to generate export summary.</div>
       <button class="btn-copy" id="copyBtn" onclick="copyExport()">Copy to Clipboard</button>
     </div>
     <div class="export-box">
-      <div class="export-title">📋 How To Sync Your App</div>
+      <div class="export-title">📋 How To Sync</div>
       <div class="export-sub" style="margin-bottom:0">
         <strong style="color:var(--text)">Step 1</strong> — Log tasks using the ＋ button as you work<br><br>
         <strong style="color:var(--text)">Step 2</strong> — Come here and tap <em style="color:var(--brass-lt)">Copy to Clipboard</em><br><br>
-        <strong style="color:var(--text)">Step 3</strong> — Paste the summary into an email and send it to <em style="color:var(--wake)">mikesmillie59@gmail.com</em><br><br>
-        <strong style="color:var(--text)">Step 4</strong> — We'll update your app within 48 hours and let you know when it's ready
+        <strong style="color:var(--text)">Step 3</strong> — Open Claude, upload your spreadsheet and paste your summary to update records<br><br>
+        <strong style="color:var(--text)">Step 4</strong> — Ask Claude to rebuild this app, upload to GitHub, then Clear Saved Data below
       </div>
     </div>
     <div class="export-box">
-      <div class="export-title">📊 Session Tasks</div>
+      <div class="export-title">🗑️ Reset Session Data</div>
+      <div class="export-sub">Only use this after you have received confirmation that your app has been updated. This clears all locally saved tasks from this device so you start fresh.</div>
+      <button class="btn-copy" onclick="clearLocalData()" style="border-color:rgba(224,82,82,0.4);color:#e05252;">Clear Saved Data</button>
+    </div>
       <div class="export-sub">Tasks logged this session:</div>
       <div id="sessionSummary" class="export-text">No tasks logged yet.</div>
     </div>
-    <div class="export-box" style="border-color:rgba(224,75,74,0.25);">
-      <div class="export-title" style="color:var(--red);">🗑 Reset Session Data</div>
-      <div class="export-sub">Only use this after you have received confirmation that your app has been updated. This clears all locally saved tasks from this device so you start fresh.</div>
-      <button class="btn-copy" onclick="clearLocalData()" style="background:rgba(224,75,74,0.15);color:var(--red);border:1px solid rgba(224,75,74,0.3);">Clear Saved Data</button>
-    </div>
   </div>
 
-</div>
+</div><!-- .app -->
 
+<!-- FAB -->
 <button class="fab" onclick="openLogForm()">＋</button>
 
+<!-- Bottom nav -->
 <div class="bottom-nav">
   <div class="nav-item active" onclick="showTab('dashboard')"><span class="nav-icon">📊</span>DASH</div>
   <div class="nav-item" onclick="showTab('engine')"><span class="nav-icon">⚙️</span>ENGINES</div>
@@ -524,17 +700,19 @@
   <div class="nav-item" onclick="showTab('export')"><span class="nav-icon">📤</span>EXPORT</div>
 </div>
 
-<!-- Log form -->
+<!-- Log form overlay -->
 <div class="log-overlay" id="logOverlay" onclick="overlayClick(event)">
-  <div class="log-panel">
+  <div class="log-panel" id="logPanel">
     <div class="log-handle"></div>
     <div class="log-title" id="logFormTitle">Log Maintenance Task</div>
     <div class="log-subtitle">Record completed work for spreadsheet update</div>
+
     <div class="form-row">
       <label class="form-label">Task Name</label>
       <input class="form-input" id="fTask" placeholder="e.g. Oil and Filters or type your own" autocomplete="off" oninput="filterTaskList(this.value)" onfocus="showTaskDropdown()" onblur="setTimeout(hideTaskDropdown,200)">
       <div id="taskDropdown" style="display:none;position:absolute;z-index:999;left:0;right:0;background:#0D2135;border:1px solid rgba(255,255,255,0.15);border-radius:8px;max-height:200px;overflow-y:auto;margin-top:2px;box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>
     </div>
+
     <div class="form-row">
       <label class="form-label">Applies To</label>
       <div class="engine-chips">
@@ -543,6 +721,7 @@
         <div class="engine-chip" data-eng="general" onclick="toggleChip(this)">General</div>
       </div>
     </div>
+
     <div class="form-row-2">
       <div>
         <label class="form-label">Date</label>
@@ -550,16 +729,18 @@
       </div>
       <div>
         <label class="form-label">Engine Hours</label>
-        <input type="number" class="form-input" id="fHours" placeholder="e.g. 250">
+        <input type="number" class="form-input" id="fHours" placeholder="e.g. 372">
       </div>
     </div>
+
     <div class="form-row">
       <label class="form-label">Notes</label>
       <textarea class="form-input" id="fNotes" placeholder="Parts used, observations, cost…"></textarea>
     </div>
+
     <div class="form-row-2">
       <div>
-        <label class="form-label">Parts / Cost</label>
+        <label class="form-label">Parts / Cost ($)</label>
         <input type="text" class="form-input" id="fCost" placeholder="e.g. $45.00">
       </div>
       <div>
@@ -567,15 +748,17 @@
         <input type="text" class="form-input" id="fTech" placeholder="Optional">
       </div>
     </div>
+
     <div class="form-row">
       <label class="form-label">📷 Photo Notes</label>
-      <div class="photo-upload-area">
+      <div class="photo-upload-area" id="photoUploadArea">
         <input type="file" id="fPhotos" accept="image/*" multiple capture="environment" onchange="handlePhotoSelect(event)">
         <div class="photo-upload-icon">📷</div>
         <div class="photo-upload-label">Tap to take photo or <span>choose from library</span></div>
       </div>
       <div class="photo-previews" id="photoPreviews"></div>
     </div>
+
     <div class="form-row">
       <label class="form-label">📦 Stock Adjustment <span style="color:var(--text-dim);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
       <div class="stock-toggle" onclick="toggleStockPanel()">
@@ -597,6 +780,7 @@
         <div class="stock-adj-change" id="stockChangeLabel"></div>
       </div>
     </div>
+
     <button class="btn-log" onclick="submitLog()">✓ Log Task</button>
     <button class="btn-cancel" onclick="closeLogForm()">Cancel</button>
   </div>
@@ -608,7 +792,7 @@
     <div class="photo-viewer-title" id="viewerTitle">Photo 1 of 1</div>
     <button class="photo-viewer-close" onclick="closeViewer()">✕</button>
   </div>
-  <img class="photo-viewer-img" id="viewerImg" src="" alt="Photo">
+  <img class="photo-viewer-img" id="viewerImg" src="" alt="Photo note">
   <div class="photo-viewer-arrows">
     <button class="photo-arrow" id="arrowPrev" onclick="viewerNav(-1)">‹</button>
     <button class="photo-arrow" id="arrowNext" onclick="viewerNav(1)">›</button>
@@ -616,165 +800,334 @@
   <div class="photo-viewer-nav" id="viewerDots"></div>
 </div>
 
+<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
 // ═══════════════════════════════════════════════════════════════════
-// ── CUSTOMER DATA — customise this section for each vessel ────────
+// DATA
 // ═══════════════════════════════════════════════════════════════════
+const TODAY = new Date();
 
-const VESSEL_NAME  = "MV Sea Breeze";       // Boat name
-const VESSEL_TYPE  = "1988 Marinette 32";   // Make / model / year
-const ENGINE_CONFIG = "twin";               // "twin" or "single"
-const PORT_HOURS   = 142;                   // Current port engine hours
-const STBD_HOURS   = 148;                   // Current stbd engine hours
+// ── localStorage helpers ──────────────────────────────────────────
+const STORAGE_KEY = 'vessellog_template';
 
-// Engine tasks — generic diesel, suitable for most twin-diesel vessels
-// nextHrs = hour-based service | nextDate = date-based service
+function saveState() {
+  try {
+    const toSave = {
+      portHrs: state.portHrs,
+      stbdHrs: state.stbdHrs,
+      loggedTasks: state.loggedTasks,
+      engineTaskOverrides: engineTasks.map(t => ({
+        name: t.name,
+        port: { lastDate: t.port.lastDate, lastHrs: t.port.lastHrs, nextHrs: t.port.nextHrs, nextDate: t.port.nextDate },
+        stbd: { lastDate: t.stbd.lastDate, lastHrs: t.stbd.lastHrs, nextHrs: t.stbd.nextHrs, nextDate: t.stbd.nextDate },
+      })),
+      inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock, notes: i.notes || '' })),
+      userAddedParts: inventory.filter(i => i.userAdded),
+      userAddedTasks: scheduledTasks.filter(t => t.userAdded),
+      scheduledTaskOverrides: scheduledTasks.filter(t => !t.userAdded).map(t => ({ name: t.name, lastDate: t.lastDate, nextDate: t.nextDate })),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    // Save persistent data (survives Clear Saved Data)
+    const persistent = {
+      portHrs: state.portHrs,
+      stbdHrs: state.stbdHrs,
+      inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock, notes: i.notes || '' })),
+      userAddedParts: inventory.filter(i => i.userAdded),
+      engineTaskOverrides: toSave.engineTaskOverrides,
+      scheduledTaskOverrides: toSave.scheduledTaskOverrides,
+      userAddedTasks: toSave.userAddedTasks,
+    };
+    localStorage.setItem(STORAGE_KEY + '_persist', JSON.stringify(persistent));
+  } catch(e) { console.warn('Save failed:', e); }
+}
+
+function loadState() {
+  const mainExists = !!localStorage.getItem(STORAGE_KEY);
+  // Load persistent data first (baseline that survives Clear Saved Data)
+  try {
+    const ps = localStorage.getItem(STORAGE_KEY + '_persist');
+    if (ps) {
+      const pd = JSON.parse(ps);
+      if (pd.portHrs) { state.portHrs = pd.portHrs; document.getElementById('portHrs').value = pd.portHrs; }
+      if (pd.stbdHrs) { state.stbdHrs = pd.stbdHrs; document.getElementById('stbdHrs').value = pd.stbdHrs; }
+      if (pd.inventoryStock) pd.inventoryStock.forEach(s => { const item = inventory.find(i => i.id === s.id); if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; } });
+      if (pd.userAddedParts) pd.userAddedParts.forEach(p => { if (!inventory.find(i => i.id === p.id)) inventory.push(p); });
+      if (pd.engineTaskOverrides) pd.engineTaskOverrides.forEach(override => { const task = engineTasks.find(t => t.name === override.name); if (task) { task.port.lastDate=override.port.lastDate; task.port.lastHrs=override.port.lastHrs; task.port.nextHrs=override.port.nextHrs; task.port.nextDate=override.port.nextDate; task.stbd.lastDate=override.stbd.lastDate; task.stbd.lastHrs=override.stbd.lastHrs; task.stbd.nextHrs=override.stbd.nextHrs; task.stbd.nextDate=override.stbd.nextDate; } });
+      if (pd.scheduledTaskOverrides) pd.scheduledTaskOverrides.forEach(override => { const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded); if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; } });
+      if (pd.userAddedTasks) pd.userAddedTasks.forEach(t => { if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t); });
+    }
+  } catch(e) { console.warn('Persist load failed:', e); }
+  // Then load main session state — overwrites persist where present
+  if (!mainExists) return;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const data = JSON.parse(saved);
+    if (data.portHrs) { state.portHrs = data.portHrs; document.getElementById('portHrs').value = data.portHrs; }
+    if (data.stbdHrs) { state.stbdHrs = data.stbdHrs; document.getElementById('stbdHrs').value = data.stbdHrs; }
+    if (data.loggedTasks) state.loggedTasks = data.loggedTasks;
+    if (data.engineTaskOverrides) {
+      data.engineTaskOverrides.forEach(override => {
+        const task = engineTasks.find(t => t.name === override.name);
+        if (task) {
+          task.port.lastDate = override.port.lastDate; task.port.lastHrs = override.port.lastHrs;
+          task.port.nextHrs  = override.port.nextHrs;  task.port.nextDate = override.port.nextDate;
+          task.stbd.lastDate = override.stbd.lastDate; task.stbd.lastHrs = override.stbd.lastHrs;
+          task.stbd.nextHrs  = override.stbd.nextHrs;  task.stbd.nextDate = override.stbd.nextDate;
+        }
+      });
+    }
+    if (data.scheduledTaskOverrides) {
+      data.scheduledTaskOverrides.forEach(override => {
+        const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded);
+        if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; }
+      });
+    }
+    if (data.inventoryStock) {
+      data.inventoryStock.forEach(s => {
+        const item = inventory.find(i => i.id === s.id);
+        if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; }
+      });
+    }
+    if (data.userAddedParts) {
+      data.userAddedParts.forEach(p => {
+        if (!inventory.find(i => i.id === p.id)) inventory.push(p);
+      });
+    }
+    if (data.userAddedTasks) {
+      data.userAddedTasks.forEach(t => {
+        if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t);
+      });
+    }
+  } catch(e) { console.warn('Load failed:', e); }
+}
+
+function clearLocalData() {
+  if (!confirm('This will clear all saved tasks and hours from this device. Only do this after syncing with Claude. Are you sure?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  // Keep _persist so engine hours and inventory survive
+  location.reload();
+}
+
+let state = {
+  portHrs: 0,
+  stbdHrs: 0,
+  loggedTasks: [],
+};
+
+let pendingPhotos = [];
+let pendingStock = { partId: null, partName: null, delta: 0, originalStock: null };
+
+// Engine tasks — shared list, status computed per engine
 const engineTasks = [
-  { name:"Engine Oil & Filters",     freq:"250 hrs",   port:{ lastDate:"12-Jan-2025", lastHrs:0,   nextHrs:250,  nextDate:null },        stbd:{ lastDate:"12-Jan-2025", lastHrs:0,   nextHrs:250,  nextDate:null } },
-  { name:"Primary Fuel Filter",      freq:"250 hrs",   port:{ lastDate:"12-Jan-2025", lastHrs:0,   nextHrs:250,  nextDate:null },        stbd:{ lastDate:"12-Jan-2025", lastHrs:0,   nextHrs:250,  nextDate:null } },
-  { name:"Secondary Fuel Filter",    freq:"500 hrs",   port:{ lastDate:"12-Jan-2025", lastHrs:0,   nextHrs:500,  nextDate:null },        stbd:{ lastDate:"12-Jan-2025", lastHrs:0,   nextHrs:500,  nextDate:null } },
-  { name:"Raw Water Impeller",       freq:"annual",    port:{ lastDate:"12-Jan-2025", lastHrs:null,nextHrs:null, nextDate:"12-Jan-2026" }, stbd:{ lastDate:"12-Jan-2025", lastHrs:null,nextHrs:null, nextDate:"12-Jan-2026" } },
-  { name:"Coolant",                  freq:"2 yearly",  port:{ lastDate:"12-Jan-2024", lastHrs:null,nextHrs:null, nextDate:"12-Jan-2026" }, stbd:{ lastDate:"12-Jan-2024", lastHrs:null,nextHrs:null, nextDate:"12-Jan-2026" } },
-  { name:"Transmission Oil",         freq:"500 hrs",   port:{ lastDate:"12-Jan-2025", lastHrs:0,   nextHrs:500,  nextDate:null },        stbd:{ lastDate:"12-Jan-2025", lastHrs:0,   nextHrs:500,  nextDate:null } },
-  { name:"Drive Belts",              freq:"annual",    port:{ lastDate:"12-Jan-2025", lastHrs:null,nextHrs:null, nextDate:"12-Jan-2026" }, stbd:{ lastDate:"12-Jan-2025", lastHrs:null,nextHrs:null, nextDate:"12-Jan-2026" } },
-  { name:"Heat Exchangers",          freq:"2 yearly",  port:{ lastDate:"12-Jan-2024", lastHrs:null,nextHrs:null, nextDate:"12-Jan-2026" }, stbd:{ lastDate:"12-Jan-2024", lastHrs:null,nextHrs:null, nextDate:"12-Jan-2026" } },
-  { name:"Zinc Pencils",             freq:"3 monthly", port:{ lastDate:"12-Jan-2025", lastHrs:null,nextHrs:null, nextDate:"12-Apr-2025" }, stbd:{ lastDate:"12-Jan-2025", lastHrs:null,nextHrs:null, nextDate:"12-Apr-2025" } },
-  { name:"Engine Mounts",            freq:"each haulout",port:{ lastDate:"—",         lastHrs:null,nextHrs:null, nextDate:null },         stbd:{ lastDate:"—",           lastHrs:null,nextHrs:null, nextDate:null },         notes:"Inspect rubber mounts at each haulout" },
-  { name:"Exhaust Elbow",            freq:"annual",    port:{ lastDate:"—",           lastHrs:null,nextHrs:null, nextDate:null },         stbd:{ lastDate:"—",           lastHrs:null,nextHrs:null, nextDate:null },         notes:"Inspect for corrosion or weeping" },
-  { name:"Valve Adjustment",         freq:"500 hrs",   port:{ lastDate:"—",           lastHrs:null,nextHrs:500, nextDate:null },          stbd:{ lastDate:"—",           lastHrs:null,nextHrs:500, nextDate:null },          notes:"Check with engine manual for your specific interval" },
+  // Hour-based tasks — port and stbd
+  { name:"Oil and Filters",       freq:"200 hrs",   port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Injector oil",          freq:"50 hrs",    port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Secondary Fuel Filter", freq:"200 hrs",   port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Primary Fuel Filter",   freq:"200 hrs",   port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Transmission Oil",      freq:"200 hrs",   port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Zinc Pencils",          freq:"3 monthly", port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Raw Water Impeller",    freq:"annual",    port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Coolant",               freq:"2 yearly",  port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Engine Oil Coolers",    freq:"5 yearly",  port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Heat Exchangers",       freq:"5 yearly",  port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Alternator/Drive Belts",freq:"annual",    port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Exhaust Elbow",         freq:"annual",    port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Engine Mounts",         freq:"each haulout", port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
 ];
 
 const scheduledTasks = [
-  { name:"Antifouling",             lastDate:"15-Oct-2024", nextDate:"15-Oct-2025", interval:"annual" },
-  { name:"Varnishing / Brightwork", lastDate:"15-Oct-2024", nextDate:"15-Oct-2025", interval:"annual" },
-  { name:"House Batteries",         lastDate:"01-Jan-2022", nextDate:"01-Jan-2027", interval:"5 years" },
-  { name:"Start Batteries",         lastDate:"—",           nextDate:null,           interval:"5 years" },
-  { name:"Through-Hulls & Seacocks",lastDate:"—",           nextDate:null,           interval:"annual", notes:"Exercise all seacocks annually; check for seizing" },
-  { name:"Bilge Pumps",             lastDate:"—",           nextDate:null,           interval:"annual", notes:"Test auto float switch and manual pump" },
-  { name:"Safety Gear",             lastDate:"—",           nextDate:null,           interval:"annual", notes:"Check expiry on flares and fire extinguishers" },
-  { name:"Standing Rigging",        lastDate:"—",           nextDate:null,           interval:"annual", notes:"Inspect for wear, swage cracks, corrosion" },
+  { name:"House Batteries",              lastDate:"—", nextDate:null, interval:"5 years" },
+  { name:"Start Batteries",             lastDate:"—", nextDate:null, interval:"5 years" },
+  { name:"Varnishing",                  lastDate:"—", nextDate:null, interval:"annual" },
+  { name:"Antifouling",                 lastDate:"—", nextDate:null, interval:"annual" },
+  { name:"Through-Hulls & Seacocks",    lastDate:"—", nextDate:null, interval:"annual" },
+  { name:"Bilge Pumps",                 lastDate:"—", nextDate:null, interval:"annual" },
+  { name:"Safety Gear (Flares/Extinguishers)", lastDate:"—", nextDate:null, interval:"annual" },
 ];
 
 const inventory = [
-  { id:"INV-001", cat:"Oil",      name:"Engine Oil & Filters",   partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null, notes:"" },
-  { id:"INV-002", cat:"Fuel",     name:"Primary Fuel Filter",    partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null, notes:"" },
-  { id:"INV-003", cat:"Fuel",     name:"Secondary Fuel Filter",  partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null, notes:"" },
-  { id:"INV-004", cat:"Cooling",  name:"Raw Water Impeller",     partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null, notes:"" },
-  { id:"INV-005", cat:"Cooling",  name:"Coolant",                partNum:null,                   vendor:"— add vendor —",  stock:null, cost:null, notes:"" },
-  { id:"INV-006", cat:"Fuel",     name:"Fuel Pump (spare)",      partNum:"— add part number —",  vendor:"— add vendor —",  stock:null, cost:null, notes:"" },
+  { id:"INV-001", cat:"Oil",     name:"Engine Oil & Filters",  partNum:null, vendor:null, stock:null, cost:null, notes:"" },
+  { id:"INV-002", cat:"Fuel",    name:"Primary Fuel Filter",   partNum:null, vendor:null, stock:null, cost:null, notes:"" },
+  { id:"INV-003", cat:"Fuel",    name:"Secondary Fuel Filter", partNum:null, vendor:null, stock:null, cost:null, notes:"" },
+  { id:"INV-004", cat:"Cooling", name:"Raw Water Impeller",    partNum:null, vendor:null, stock:null, cost:null, notes:"" },
+  { id:"INV-005", cat:"Cooling", name:"Coolant",               partNum:null, vendor:null, stock:null, cost:null, notes:"" },
 ];
 
-// Sample maintenance log — replace with actual vessel history
 const maintenanceLog = [
-  { date:"12-Jan-2025", task:"Engine Oil & Filters",  engine:"port+stbd", notes:"Full service at purchase",       tech:"Previous owner" },
-  { date:"12-Jan-2025", task:"Primary Fuel Filter",   engine:"port+stbd", notes:"Replaced at purchase",          tech:"Previous owner" },
-  { date:"15-Oct-2024", task:"Antifouling",           engine:"general",   notes:"Full hull antifoul",            tech:"" },
-  { date:"15-Oct-2024", task:"Varnishing / Brightwork",engine:"general",  notes:"Cockpit coamings and handrails",tech:"" },
+  // Baked-in maintenance history goes here
+  // { date:"DD-Mon-YYYY", task:"Task name", engine:"general", notes:"", tech:"" },
 ];
 
 // ═══════════════════════════════════════════════════════════════════
-// ── END CUSTOMER DATA ─────────────────────────────────────────────
+// STATUS LOGIC
 // ═══════════════════════════════════════════════════════════════════
-
-let state = { portHrs: PORT_HOURS, stbdHrs: STBD_HOURS, loggedTasks: [] };
-let pendingPhotos = [];
-let pendingStock = { partId:null, partName:null, delta:0, originalStock:null };
-
 function parseDate(str) {
-  if (!str || str==='—') return null;
-  const months={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  if (!str || str === '—') return null;
+  const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
   const [d,m,y] = str.split('-');
   return new Date(parseInt(y), months[m], parseInt(d));
 }
 
 function getEngineStatus(task, side) {
-  const curHrs = side==='port' ? state.portHrs : state.stbdHrs;
+  const curHrs = side === 'port' ? state.portHrs : state.stbdHrs;
   const data = task[side];
-  const logged = state.loggedTasks.find(l => l.task===task.name && (l.engines.includes(side)||l.engines.includes('both')));
+
+  const logged = state.loggedTasks.find(l =>
+    l.task === task.name && (l.engines.includes(side) || l.engines.includes('both'))
+  );
+
   if (data.nextHrs !== null) {
     let nh = data.nextHrs;
-    if (logged && logged.hours) { const iv=parseInt(task.freq); nh=logged.hours+(isNaN(iv)?0:iv); }
+    if (logged && logged.hours) {
+      const interval = parseInt(task.freq);
+      nh = logged.hours + (isNaN(interval) ? 0 : interval);
+    }
     const rem = nh - curHrs;
-    if (rem<=0)  return {cls:'overdue',  icon:'⚠', detail:`${Math.abs(rem)}hrs over`};
-    if (rem<=25) return {cls:'due-soon', icon:'🔔', detail:`${rem}hrs left`};
-    return         {cls:'ok',       icon:'✓', detail:`+${rem}hrs`};
+    if (rem <= 0)  return { cls:'overdue',  icon:'⚠', detail:`${Math.abs(rem)}hrs over` };
+    if (rem <= 25) return { cls:'due-soon', icon:'🔔', detail:`${rem}hrs left` };
+    return           { cls:'ok',       icon:'✓', detail:`+${rem}hrs` };
   }
   if (data.nextDate) {
     const nd = parseDate(data.nextDate);
-    if (!nd) return {cls:'no-sched',icon:'—',detail:'No schedule'};
-    const days = Math.round((nd-new Date())/86400000);
-    if (days<0)   return {cls:'overdue',  icon:'⚠', detail:`${Math.abs(days)}d ago`};
-    if (days<=60) return {cls:'due-soon', icon:'🔔', detail:`${days}d`};
-    return          {cls:'ok',       icon:'✓', detail:`${days}d`};
+    if (!nd) return { cls:'no-sched', icon:'—', detail:'No schedule' };
+    const days = Math.round((nd - TODAY) / 86400000);
+    if (days < 0)   return { cls:'overdue',  icon:'⚠', detail:`${Math.abs(days)}d ago` };
+    if (days <= 60) return { cls:'due-soon', icon:'🔔', detail:`${days}d` };
+    return            { cls:'ok',       icon:'✓', detail:`${days}d` };
   }
-  return {cls:'no-sched',icon:'—',detail:'No date set'};
+  return { cls:'no-sched', icon:'—', detail:'No date set' };
 }
 
 function getScheduledStatus(task) {
   const nd = parseDate(task.nextDate);
-  if (!nd) return {cls:'no-sched',icon:'—',detail:'No date set'};
-  const days = Math.round((nd-new Date())/86400000);
-  if (days<0)   return {cls:'overdue',  icon:'⚠', detail:`${Math.abs(days)}d ago`};
-  if (days<=60) return {cls:'due-soon', icon:'🔔', detail:`${days}d`};
-  return          {cls:'ok',       icon:'✓', detail:`${days}d`};
+  if (!nd) return { cls:'no-sched', icon:'—', detail:'No date set' };
+  const days = Math.round((nd - TODAY) / 86400000);
+  if (days < 0)   return { cls:'overdue',  icon:'⚠', detail:`${Math.abs(days)}d ago` };
+  if (days <= 60) return { cls:'due-soon', icon:'🔔', detail:`${days}d` };
+  return            { cls:'ok',       icon:'✓', detail:`${days}d` };
 }
 
-function worstStatus(c1,c2) {
-  const p={overdue:0,'due-soon':1,ok:2,'no-sched':3};
-  return p[c1]<=p[c2]?c1:c2;
+function worstStatus(cls1, cls2) {
+  const priority = { overdue:0, 'due-soon':1, ok:2, 'no-sched':3 };
+  return priority[cls1] <= priority[cls2] ? cls1 : cls2;
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════
 function renderAll() {
-  renderDashboard(); renderEngineList(); renderLog(); renderInventory(); renderExport();
-  document.getElementById('portHrsDisplay').textContent = state.portHrs+' hrs';
-  document.getElementById('stbdHrsDisplay').textContent = state.stbdHrs+' hrs';
+  renderDashboard();
+  renderEngineList();
+  renderLog();
+  renderInventory();
+  renderExport();
+  document.getElementById('portHrsDisplay').textContent = state.portHrs + ' hrs';
+  document.getElementById('stbdHrsDisplay').textContent = state.stbdHrs + ' hrs';
 }
 
 function renderDashboard() {
-  const overdues = engineTasks.filter(t=>worstStatus(getEngineStatus(t,'port').cls,getEngineStatus(t,'stbd').cls)==='overdue');
-  const dueSoons = engineTasks.filter(t=>worstStatus(getEngineStatus(t,'port').cls,getEngineStatus(t,'stbd').cls)==='due-soon');
-  let alertsHTML='';
-  if (overdues.length) alertsHTML+=`<div class="alert-banner"><span class="alert-icon">🚨</span><div class="alert-text"><strong>Action Required</strong>${overdues.map(t=>t.name).join(', ')}</div></div>`;
-  if (dueSoons.length) alertsHTML+=`<div class="alert-banner amber"><span class="alert-icon">🔔</span><div class="alert-text"><strong>Due Soon</strong>${dueSoons.map(t=>t.name).join(', ')}</div></div>`;
-  document.getElementById('dashAlerts').innerHTML=alertsHTML;
+  // Alerts
+  const overdues  = engineTasks.filter(t => worstStatus(getEngineStatus(t,'port').cls, getEngineStatus(t,'stbd').cls) === 'overdue');
+  const dueSoons  = engineTasks.filter(t => worstStatus(getEngineStatus(t,'port').cls, getEngineStatus(t,'stbd').cls) === 'due-soon');
+  let alertsHTML = '';
+  if (overdues.length) {
+    alertsHTML += `<div class="alert-banner"><span class="alert-icon">🚨</span><div class="alert-text"><strong>Action Required</strong>${overdues.map(t=>t.name).join(', ')}</div></div>`;
+  }
+  if (dueSoons.length) {
+    alertsHTML += `<div class="alert-banner amber"><span class="alert-icon">🔔</span><div class="alert-text"><strong>Due Soon</strong>${dueSoons.map(t=>t.name).join(', ')}</div></div>`;
+  }
+  document.getElementById('dashAlerts').innerHTML = alertsHTML;
 
-  const sorted=[...engineTasks].sort((a,b)=>{
-    const p={overdue:0,'due-soon':1,ok:2,'no-sched':3};
-    return p[worstStatus(getEngineStatus(a,'port').cls,getEngineStatus(a,'stbd').cls)]-p[worstStatus(getEngineStatus(b,'port').cls,getEngineStatus(b,'stbd').cls)];
+  // Engine tasks sorted by priority
+  const sorted = [...engineTasks].sort((a, b) => {
+    const pa = { overdue:0, 'due-soon':1, ok:2, 'no-sched':3 };
+    const wa = worstStatus(getEngineStatus(a,'port').cls, getEngineStatus(a,'stbd').cls);
+    const wb2 = worstStatus(getEngineStatus(b,'port').cls, getEngineStatus(b,'stbd').cls);
+    return pa[wa] - pa[wb2];
   });
-  let overdueCount=0,dueSoonCount=0,html='';
-  sorted.forEach((task,i)=>{
-    const ps=getEngineStatus(task,'port'),ss=getEngineStatus(task,'stbd');
-    const worst=worstStatus(ps.cls,ss.cls);
-    if(worst==='overdue')overdueCount++;
-    if(worst==='due-soon')dueSoonCount++;
-    const logged=state.loggedTasks.find(l=>l.task===task.name);
-    const displaySt=ps.cls===worst?ps:ss;
-    html+=`<div class="task-card ${worst}${logged?' logged':''}" onclick="quickLog('${task.name}','both')" style="animation-delay:${i*0.03}s"><div class="task-main"><div class="task-check">${logged?'✓':''}</div><div class="task-info"><div class="task-name">${task.name}</div><div class="task-meta">${task.freq}</div></div><div class="task-status">${displaySt.icon} ${displaySt.detail}</div></div></div>`;
-  });
-  document.getElementById('dashEngineTasks').innerHTML=html;
-  document.getElementById('engBadge').textContent=overdueCount?`${overdueCount} overdue`:(dueSoonCount?`${dueSoonCount} due soon`:'All OK');
 
-  let schedHTML='';
-  scheduledTasks.forEach((t,i)=>{
-    const st=getScheduledStatus(t);
-    schedHTML+=`<div class="task-card ${st.cls}" onclick="openLogForm('${t.name}','general')" style="animation-delay:${i*0.04}s;cursor:pointer;"><div class="task-main"><div class="task-check">${state.loggedTasks.find(l=>l.task===t.name)?'✓':''}</div><div class="task-info"><div class="task-name">${t.name}</div><div class="task-meta">Last: ${t.lastDate} · ${t.interval}</div></div><div class="task-status">${st.icon} ${st.detail}</div></div></div>`;
+  let overdueCount = 0, dueSoonCount = 0;
+  let html = '';
+  sorted.forEach((task, i) => {
+    const ps = getEngineStatus(task, 'port');
+    const ss = getEngineStatus(task, 'stbd');
+    const worst = worstStatus(ps.cls, ss.cls);
+    if (worst === 'overdue') overdueCount++;
+    if (worst === 'due-soon') dueSoonCount++;
+    const logged = state.loggedTasks.find(l => l.task === task.name);
+    const loggedClass = logged ? ' logged' : '';
+    const checkIcon = logged ? '✓' : '';
+    // Show worst status detail
+    const displaySt = ps.cls === worst ? ps : ss;
+    html += `
+    <div class="task-card ${worst}${loggedClass}" onclick="quickLog('${task.name}','both')" style="animation-delay:${i*0.03}s">
+      <div class="task-main">
+        <div class="task-check">${checkIcon}</div>
+        <div class="task-info">
+          <div class="task-name">${task.name}</div>
+          <div class="task-meta">${task.freq}</div>
+        </div>
+        <div class="task-status">${displaySt.icon} ${displaySt.detail}</div>
+      </div>
+    </div>`;
   });
-  document.getElementById('dashScheduled').innerHTML=schedHTML;
+  document.getElementById('dashEngineTasks').innerHTML = html;
+  document.getElementById('engBadge').textContent = overdueCount ? `${overdueCount} overdue` : (dueSoonCount ? `${dueSoonCount} due soon` : 'All OK');
+
+  // Scheduled
+  let schedHTML = '';
+  scheduledTasks.forEach((t, i) => {
+    const st = getScheduledStatus(t);
+    schedHTML += `
+    <div class="task-card ${st.cls}" onclick="openLogForm('${t.name}','general')" style="animation-delay:${i*0.04}s;cursor:pointer;">
+      <div class="task-main">
+        <div class="task-check">${state.loggedTasks.find(l=>l.task===t.name)?'✓':''}</div>
+        <div class="task-info">
+          <div class="task-name">${t.name}</div>
+          <div class="task-meta">Last: ${t.lastDate} · ${t.interval}</div>
+        </div>
+        <div class="task-status">${st.icon} ${st.detail}</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('dashScheduled').innerHTML = schedHTML;
 }
 
 function renderEngineList() {
-  let html='';
-  engineTasks.forEach((task,i)=>{
-    const ps=getEngineStatus(task,'port'),ss=getEngineStatus(task,'stbd');
-    const worst=worstStatus(ps.cls,ss.cls);
-    const cardCls=worst==='overdue'?'overdue-any':worst==='due-soon'?'due-soon-any':worst==='ok'?'ok-all':'no-sched-all';
-    const logged=state.loggedTasks.find(l=>l.task===task.name);
-    html+=`<div class="eng-row-card ${cardCls}" style="animation-delay:${i*0.03}s"><div class="eng-row-name" onclick="quickLog('${task.name}','both')"><span>${logged?'✓ ':''}${task.name}</span><span class="eng-row-freq">${task.freq}</span></div><div class="eng-row-cols"><div class="eng-col port"><div class="eng-col-header">⬅ PORT</div><div class="eng-status-pill ${ps.cls}">${ps.icon} ${ps.detail}</div><div class="eng-col-detail">Last: ${task.port.lastDate}</div></div><div class="eng-col stbd"><div class="eng-col-header">STBD ➡</div><div class="eng-status-pill ${ss.cls}">${ss.icon} ${ss.detail}</div><div class="eng-col-detail">Last: ${task.stbd.lastDate}</div></div></div>${task.notes?`<div class="eng-row-note">💬 ${task.notes}</div>`:''}</div>`;
+  let html = '';
+  engineTasks.forEach((task, i) => {
+    const ps = getEngineStatus(task, 'port');
+    const ss = getEngineStatus(task, 'stbd');
+    const worst = worstStatus(ps.cls, ss.cls);
+    const cardCls = worst === 'overdue' ? 'overdue-any' :
+                    worst === 'due-soon' ? 'due-soon-any' :
+                    worst === 'ok' ? 'ok-all' : 'no-sched-all';
+    const logged = state.loggedTasks.find(l => l.task === task.name);
+
+    html += `
+    <div class="eng-row-card ${cardCls}" style="animation-delay:${i*0.03}s">
+      <div class="eng-row-name" onclick="quickLog('${task.name}','both')">
+        <span>${logged ? '✓ ' : ''}${task.name}</span>
+        <span class="eng-row-freq">${task.freq}</span>
+      </div>
+      <div class="eng-row-cols">
+        <div class="eng-col port">
+          <div class="eng-col-header">⬅ PORT</div>
+          <div class="eng-status-pill ${ps.cls}">${ps.icon} ${ps.detail}</div>
+          <div class="eng-col-detail">Last: ${task.port.lastDate}</div>
+        </div>
+        <div class="eng-col stbd">
+          <div class="eng-col-header">STBD ➡</div>
+          <div class="eng-status-pill ${ss.cls}">${ss.icon} ${ss.detail}</div>
+          <div class="eng-col-detail">Last: ${task.stbd.lastDate}</div>
+        </div>
+      </div>
+      ${task.notes ? `<div class="eng-row-note">💬 ${task.notes}</div>` : ''}
+    </div>`;
   });
-  document.getElementById('engineTaskList').innerHTML=html;
+  document.getElementById('engineTaskList').innerHTML = html;
 }
 
 function deleteLogEntry(idx) {
@@ -788,185 +1141,424 @@ function deleteLogEntry(idx) {
 }
 
 function renderLog() {
-  const baked=maintenanceLog.map(l=>({...l,isLogged:false}));
-  const logged=state.loggedTasks.map(l=>({date:l.date,task:l.task,engine:l.engines.join('+'),notes:l.notes,tech:l.tech,photos:l.photos||[],isLogged:true}));
-  const all=[...baked,...logged].reverse();
-  let loggedIdx=0;
-  document.getElementById('logBadge').textContent=`${all.length} entries`;
-  if(!all.length){document.getElementById('logList').innerHTML=`<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No log entries yet.<br>Tap ＋ to record maintenance.</div></div>`;return;}
-  let html='';
-  all.forEach((entry,idx)=>{
-    const eng=entry.engine==='general'?'general':entry.engine==='both'?'port+stbd':entry.engine;
-    const tagCls=eng.includes('port')&&eng.includes('stbd')?'tag-port':eng.includes('port')?'tag-port':eng.includes('stbd')?'tag-stbd':'tag-gen';
-    const photos=entry.photos||[];
-    let photoHtml='';
-    if(photos.length){photoHtml=`<div class="log-photo-strip">`;photos.forEach((p,pi)=>{photoHtml+=`<img class="log-photo-thumb" src="${p.dataUrl}" onclick="openViewer(${idx},${pi},event)">`});photoHtml+=`</div>`;}
-    let deleteBtn='';
-    if(entry.isLogged){const realIdx=state.loggedTasks.length-1-loggedIdx;deleteBtn=`<button onclick="deleteLogEntry(${realIdx})" style="background:none;border:none;color:var(--text-dim);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1;" title="Delete entry">🗑</button>`;loggedIdx++;}
-    html+=`<div class="log-entry"><div class="log-entry-header"><div class="log-entry-task">${entry.task}</div><div style="display:flex;align-items:center;gap:4px;">${deleteBtn}<div class="log-entry-date">${entry.date}</div></div></div><div class="log-entry-meta"><span class="log-entry-tag ${tagCls}">${eng.toUpperCase()}</span>${entry.notes?entry.notes:''}${entry.tech?`<br>👤 ${entry.tech}`:''}${photos.length?`<span class="photo-count-badge">📷 ${photos.length}</span>`:''}</div>${photoHtml}</div>`;
+  const bakedCount = maintenanceLog.length;
+  const all = [...maintenanceLog, ...state.loggedTasks.map(l => ({
+    date: l.date, task: l.task, engine: l.engines.join('+'),
+    notes: l.notes, tech: l.tech, cost: l.cost, hours: l.hours,
+    photos: l.photos || [], isLogged: true
+  }))].reverse();
+
+  document.getElementById('logBadge').textContent = `${all.length} entries`;
+  if (!all.length) {
+    document.getElementById('logList').innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No log entries yet.<br>Tap ＋ to record maintenance.</div></div>`;
+    return;
+  }
+  let html = '';
+  // Track index into loggedTasks for delete (reversed order)
+  const loggedReversed = [...state.loggedTasks].reverse();
+  let loggedIdx = 0;
+  all.forEach((entry, entryIdx) => {
+    const engLabel = entry.engine === 'general' ? 'general' :
+                     entry.engine === 'both' ? 'port+stbd' : entry.engine;
+    const tagCls = engLabel.includes('port') && engLabel.includes('stbd') ? 'tag-port' :
+                   engLabel.includes('port') ? 'tag-port' :
+                   engLabel.includes('stbd') ? 'tag-stbd' : 'tag-gen';
+    const photos = entry.photos || [];
+    let photoHtml = '';
+    if (photos.length) {
+      photoHtml = `<div class="log-photo-strip">`;
+      photos.forEach((p, pi) => {
+        photoHtml += `<img class="log-photo-thumb" src="${p.dataUrl}" alt="Photo ${pi+1}" onclick="openViewer(${entryIdx}, ${pi}, event)">`;
+      });
+      photoHtml += `</div>`;
+    }
+    // Delete button only for user-logged entries (not baked-in history)
+    let deleteBtn = '';
+    if (entry.isLogged) {
+      const realIdx = state.loggedTasks.length - 1 - loggedIdx;
+      deleteBtn = `<button onclick="deleteLogEntry(${realIdx})" style="background:none;border:none;color:var(--text-dim);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1;" title="Delete entry">🗑</button>`;
+      loggedIdx++;
+    }
+    html += `
+    <div class="log-entry">
+      <div class="log-entry-header">
+        <div class="log-entry-task">${entry.task}</div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          ${deleteBtn}
+          <div class="log-entry-date">${entry.date}</div>
+        </div>
+      </div>
+      <div class="log-entry-meta">
+        <span class="log-entry-tag ${tagCls}">${engLabel.toUpperCase()}</span>
+        ${entry.hours ? `<span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);margin-left:6px;">${entry.hours} hrs</span>` : ''}
+        ${entry.notes ? `<div style="margin-top:5px;">${entry.notes}</div>` : ''}
+        ${entry.tech  ? `<div style="margin-top:4px;">👤 ${entry.tech}</div>` : ''}
+        ${entry.cost  ? `<div style="margin-top:4px;">💲${entry.cost}</div>` : ''}
+        ${photos.length ? `<span class="photo-count-badge">📷 ${photos.length} photo${photos.length>1?'s':''}</span>` : ''}
+      </div>
+      ${photoHtml}
+    </div>`;
   });
-  document.getElementById('logList').innerHTML=html;
-  window._logEntries=all;
+  document.getElementById('logList').innerHTML = html;
+  window._logEntries = all;
 }
 
 function renderInventory() {
-  let html='';
-  inventory.forEach((item,idx)=>{
-    const sc=item.stock===null?'none':item.stock===0?'low':'ok';
-    const sl=item.stock===null?'NO DATA':item.stock===0?'OUT OF STOCK':`${item.stock} in stock`;
-    const meta=[
-      item.partNum?`🔩 ${item.partNum}`:'',
-      item.vendor?`🏪 ${item.vendor}`:'',
-      item.cost?`💲${item.cost.toFixed(2)}`:'',
-      item.notes?`📝 ${item.notes}`:''
+  let html = '';
+  inventory.forEach((item, idx) => {
+    const stockVal = item.stock;
+    const stockCls = stockVal === null ? 'none' : (stockVal === 0 ? 'low' : 'ok');
+    const stockLabel = stockVal === null ? 'NO DATA' : (stockVal === 0 ? 'OUT OF STOCK' : `${stockVal} in stock`);
+    const meta = [
+      item.partNum ? `🔩 ${item.partNum}` : '',
+      item.vendor  ? `🏪 ${item.vendor}` : '',
+      item.cost    ? `💲${item.cost.toFixed(2)}` : '',
+      item.notes   ? `📝 ${item.notes}` : '',
     ].filter(Boolean).join(' &nbsp;·&nbsp; ');
-    const qty=item.stock!==null?item.stock:0;
-    const pn=(item.partNum||'').replace(/"/g,'&quot;');
-    const vn=(item.vendor||'').replace(/"/g,'&quot;');
-    const nn=(item.notes||'').replace(/"/g,'&quot;');
-    const ct=(item.cat||'').replace(/"/g,'&quot;');
-    const nm=item.name.replace(/"/g,'&quot;');
-    html+=`<div class="inv-card" id="invcard-${idx}"><div class="inv-card-header"><div><div class="inv-cat">${item.cat}</div><div class="inv-name">${item.name}</div></div><div style="display:flex;align-items:center;gap:4px;"><div class="inv-stock ${sc}">${sl}</div><button class="inv-action-btn" onclick="toggleEditPart(${idx})" title="Edit">✏️</button><button class="inv-action-btn delete" onclick="deletePart(${idx})" title="Delete">🗑</button></div></div>${meta?`<div class="inv-meta">${meta}</div>`:''}<div class="inv-stock-controls"><button class="inv-adj-btn minus" onclick="adjustPartStock(${idx},-1)">−</button><span class="inv-qty-display">${qty}</span><button class="inv-adj-btn plus" onclick="adjustPartStock(${idx},+1)">＋</button></div><div class="inv-edit-form" id="inv-edit-${idx}"><div class="inv-edit-row"><span class="inv-edit-label">Name</span><input class="inv-edit-input" id="ei-name-${idx}" value="${nm}"></div><div class="inv-edit-row"><span class="inv-edit-label">Category</span><input class="inv-edit-input" id="ei-cat-${idx}" value="${ct}"></div><div class="inv-edit-row"><span class="inv-edit-label">Part no.</span><input class="inv-edit-input" id="ei-pnum-${idx}" value="${pn}"></div><div class="inv-edit-row"><span class="inv-edit-label">Supplier</span><input class="inv-edit-input" id="ei-vendor-${idx}" value="${vn}"></div><div class="inv-edit-row"><span class="inv-edit-label">Notes</span><input class="inv-edit-input" id="ei-notes-${idx}" value="${nn}"></div><div style="display:flex;gap:8px;margin-top:8px;"><button class="log-submit-btn" onclick="saveEditPart(${idx})" style="flex:1;padding:8px;">Save</button><button class="log-submit-btn" onclick="toggleEditPart(${idx})" style="flex:1;padding:8px;background:var(--hull);border:1px solid rgba(255,255,255,0.2);">Cancel</button></div></div></div>`;
+    const qty = stockVal !== null ? stockVal : 0;
+    html += `
+    <div class="inv-card" id="invcard-${idx}">
+      <div class="inv-card-header">
+        <div>
+          <div class="inv-cat">${item.cat}</div>
+          <div class="inv-name">${item.name}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div class="inv-stock ${stockCls}">${stockLabel}</div>
+          <button class="inv-action-btn" onclick="toggleEditPart(${idx})" title="Edit">✏️</button>
+          <button class="inv-action-btn delete" onclick="deletePart(${idx})" title="Delete">🗑</button>
+        </div>
+      </div>
+      ${meta ? `<div class="inv-meta">${meta}</div>` : ''}
+      <div class="inv-stock-controls">
+        <button class="inv-adj-btn minus" onclick="adjustPartStock(${idx}, -1)">−</button>
+        <span class="inv-qty-display">${qty}</span>
+        <button class="inv-adj-btn plus"  onclick="adjustPartStock(${idx}, +1)">＋</button>
+      </div>
+      <div class="inv-edit-form" id="inv-edit-${idx}">
+        <div class="inv-edit-row"><span class="inv-edit-label">Name</span><input class="inv-edit-input" id="ei-name-${idx}" value="${item.name.replace(/"/g,'&quot;')}"></div>
+        <div class="inv-edit-row"><span class="inv-edit-label">Category</span><input class="inv-edit-input" id="ei-cat-${idx}" value="${(item.cat||'').replace(/"/g,'&quot;')}"></div>
+        <div class="inv-edit-row"><span class="inv-edit-label">Part no.</span><input class="inv-edit-input" id="ei-pnum-${idx}" value="${(item.partNum||'').replace(/"/g,'&quot;')}"></div>
+        <div class="inv-edit-row"><span class="inv-edit-label">Supplier</span><input class="inv-edit-input" id="ei-vendor-${idx}" value="${(item.vendor||'').replace(/"/g,'&quot;')}"></div>
+        <div class="inv-edit-row"><span class="inv-edit-label">Notes</span><input class="inv-edit-input" id="ei-notes-${idx}" value="${(item.notes||'').replace(/"/g,'&quot;')}"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="log-submit-btn" onclick="saveEditPart(${idx})" style="flex:1;padding:8px;">Save</button>
+          <button class="log-submit-btn" onclick="toggleEditPart(${idx})" style="flex:1;padding:8px;background:var(--hull);border:1px solid rgba(255,255,255,0.2);">Cancel</button>
+        </div>
+      </div>
+    </div>`;
   });
-  document.getElementById('inventoryList').innerHTML=html||'<div style="color:var(--muted);text-align:center;padding:20px;">No parts in inventory yet. Tap + Add Part to get started.</div>';
+  document.getElementById('inventoryList').innerHTML = html || '<div style="color:var(--text-dim);text-align:center;padding:20px;">No parts yet. Tap + Add Part to get started.</div>';
 }
 
 function renderExport() {
-  if(!state.loggedTasks.length){document.getElementById('exportText').textContent='Log tasks first to generate export summary.';document.getElementById('sessionSummary').textContent='No tasks logged yet.';return;}
-  const lines=[`UPDATE: ${formatDate(new Date())}`,`Port Engine: ${state.portHrs} hrs | Stbd Engine: ${state.stbdHrs} hrs`,'','COMPLETED TASKS:'];
-  state.loggedTasks.forEach(t=>{
-    let line=`• ${t.task}`;
-    if(t.engines&&t.engines.length)line+=` [${t.engines.join('+')}]`;
-    if(t.hours)line+=` @ ${t.hours} hrs`;
-    if(t.notes)line+=` — ${t.notes}`;
-    if(t.cost)line+=` (${t.cost})`;
-    if(t.tech)line+=` by ${t.tech}`;
+  if (!state.loggedTasks.length) {
+    document.getElementById('exportText').textContent = 'Log tasks first to generate export summary.';
+    document.getElementById('sessionSummary').textContent = 'No tasks logged yet.';
+    return;
+  }
+  const today = formatDate(new Date());
+  const lines = [`UPDATE: ${today}`];
+  lines.push(`Port Engine: ${state.portHrs} hrs | Stbd Engine: ${state.stbdHrs} hrs`);
+  lines.push('');
+  lines.push('COMPLETED TASKS:');
+  state.loggedTasks.forEach(t => {
+    let line = `• ${t.task}`;
+    if (t.engines && t.engines.length) line += ` [${t.engines.join('+')}]`;
+    if (t.hours) line += ` @ ${t.hours} hrs`;
+    if (t.notes) line += ` — ${t.notes}`;
+    if (t.cost)  line += ` (${t.cost})`;
+    if (t.tech)  line += ` by ${t.tech}`;
     lines.push(line);
   });
-  const sc=state.loggedTasks.filter(t=>t.stockChange);
-  if(sc.length){lines.push('','STOCK UPDATES:');sc.forEach(t=>{const s=t.stockChange;lines.push(`• ${s.partName}: ${s.delta>0?'+':''}${s.delta} → now ${s.newStock} in stock`);});}
-  lines.push('','Please update the spreadsheet with these entries.');
-  document.getElementById('exportText').textContent=lines.join('\n');
-  document.getElementById('sessionSummary').textContent=state.loggedTasks.map(t=>`${t.task} — ${t.date}`).join('\n');
+  const stockChanges = state.loggedTasks.filter(t => t.stockChange);
+  if (stockChanges.length) {
+    lines.push('');
+    lines.push('STOCK UPDATES:');
+    stockChanges.forEach(t => {
+      const sc = t.stockChange;
+      const sign = sc.delta > 0 ? `+${sc.delta}` : `${sc.delta}`;
+      lines.push(`• ${sc.partName}: ${sign} → now ${sc.newStock} in stock`);
+    });
+  }
+  lines.push('');
+  lines.push('Please update the spreadsheet with these entries.');
+  document.getElementById('exportText').textContent = lines.join('\n');
+  document.getElementById('sessionSummary').textContent = state.loggedTasks.map(t => `${t.task} — ${t.date}`).join('\n');
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// INTERACTIONS
+// ═══════════════════════════════════════════════════════════════════
 function showTab(tab) {
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
-  const idx=['dashboard','engine','log','inventory','export'].indexOf(tab);
-  document.querySelectorAll('.tab')[idx].classList.add('active');
-  document.querySelectorAll('.nav-item')[idx].classList.add('active');
-  const wrap=document.getElementById("boatPhotoWrap");const inp=document.getElementById("boatPhotoInput");if(wrap)wrap.style.display=tab==="dashboard"?"block":"none";if(inp)inp.style.display="none";
-  if(tab==='log')renderLog();
-  if(tab==='export')renderExport();
+  const tabIdx = ['dashboard','engine','log','inventory','export'].indexOf(tab);
+  document.querySelectorAll('.tab')[tabIdx].classList.add('active');
+  document.querySelectorAll('.nav-item')[tabIdx].classList.add('active');
+  // Show boat photo only on dashboard
+  const wrap = document.getElementById('boatPhotoWrap');
+  const inp  = document.getElementById('boatPhotoInput');
+  if (wrap) wrap.style.display = tab === 'dashboard' ? 'block' : 'none';
+  if (inp)  inp.style.display  = 'none';
+  if (tab === 'log') renderLog();
+  if (tab === 'export') renderExport();
 }
 
 function updateHours() {
-  state.portHrs=parseInt(document.getElementById('portHrs').value)||0;
-  state.stbdHrs=parseInt(document.getElementById('stbdHrs').value)||0;
-  document.getElementById('portHrsDisplay').textContent=state.portHrs+' hrs';
-  document.getElementById('stbdHrsDisplay').textContent=state.stbdHrs+' hrs';
-  renderDashboard(); renderEngineList();
+  state.portHrs = parseInt(document.getElementById('portHrs').value) || 0;
+  state.stbdHrs = parseInt(document.getElementById('stbdHrs').value) || 0;
+  document.getElementById('portHrsDisplay').textContent = state.portHrs + ' hrs';
+  document.getElementById('stbdHrsDisplay').textContent = state.stbdHrs + ' hrs';
+  saveState();
+  renderDashboard();
+  renderEngineList();
 }
 
-function openLogForm(taskName,engine) {
-  const allNames=[...new Set([...engineTasks.map(t=>t.name),...scheduledTasks.map(t=>t.name)])];
-  window._allTaskNames=allNames; buildTaskDropdown(allNames);
-  if(taskName){
-    document.getElementById('fTask').value=taskName;
-    document.getElementById('logFormTitle').textContent=taskName;
-    document.querySelectorAll('.engine-chip').forEach(c=>{c.classList.toggle('selected',engine==='both'?(c.dataset.eng==='port'||c.dataset.eng==='stbd'):c.dataset.eng===engine);});
-    const task=engineTasks.find(t=>t.name===taskName);
-    if(task&&task.port.nextHrs)document.getElementById('fHours').value=task.port.nextHrs;
+function openLogForm(taskName, engine) {
+  const allTaskNames = [...new Set([
+    ...engineTasks.map(t=>t.name),
+    ...scheduledTasks.map(t=>t.name),
+  ])];
+  window._allTaskNames = allTaskNames; buildTaskDropdown(allTaskNames);
+
+  if (taskName) {
+    document.getElementById('fTask').value = taskName;
+    document.getElementById('logFormTitle').textContent = taskName;
+    document.querySelectorAll('.engine-chip').forEach(c => {
+      if (engine === 'both') {
+        c.classList.toggle('selected', c.dataset.eng === 'port' || c.dataset.eng === 'stbd');
+      } else {
+        c.classList.toggle('selected', c.dataset.eng === engine);
+      }
+    });
+    const task = engineTasks.find(t => t.name === taskName);
+    if (task && task.port.nextHrs) {
+      document.getElementById('fHours').value = task.port.nextHrs;
+    }
   } else {
-    document.getElementById('fTask').value='';
-    document.getElementById('logFormTitle').textContent='Log Maintenance Task';
-    document.getElementById('fHours').value='';
-    document.querySelectorAll('.engine-chip').forEach(c=>{c.classList.toggle('selected',c.dataset.eng==='port'||c.dataset.eng==='stbd');});
+    document.getElementById('fTask').value = '';
+    document.getElementById('logFormTitle').textContent = 'Log Maintenance Task';
+    document.getElementById('fHours').value = '';
+    document.querySelectorAll('.engine-chip').forEach(c => {
+      c.classList.toggle('selected', c.dataset.eng === 'port' || c.dataset.eng === 'stbd');
+    });
   }
-  const d=new Date();
-  document.getElementById('fDate').value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  document.getElementById('fNotes').value='';document.getElementById('fCost').value='';document.getElementById('fTech').value='';
-  resetStockPanel(); pendingPhotos=[]; document.getElementById('photoPreviews').innerHTML=''; document.getElementById('fPhotos').value='';
+
+  const d = new Date();
+  document.getElementById('fDate').value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  document.getElementById('fNotes').value = '';
+  document.getElementById('fCost').value = '';
+  document.getElementById('fTech').value = '';
+  resetStockPanel();
+  pendingPhotos = [];
+  document.getElementById('photoPreviews').innerHTML = '';
+  document.getElementById('fPhotos').value = '';
   document.getElementById('logOverlay').classList.add('open');
 }
 
 function resetStockPanel() {
-  pendingStock={partId:null,partName:null,delta:0,originalStock:null};
+  pendingStock = { partId: null, partName: null, delta: 0, originalStock: null };
   document.getElementById('stockPanel').classList.remove('open');
   document.getElementById('stockArrow').classList.remove('open');
-  document.getElementById('fStockPart').value='';
-  document.getElementById('stockCurrentDisplay').textContent='—';
-  document.getElementById('stockChangeLabel').textContent='';
-  document.getElementById('stockToggleLabel').innerHTML='Tap to add or remove parts from inventory';
+  document.getElementById('fStockPart').value = '';
+  document.getElementById('stockCurrentDisplay').textContent = '—';
+  document.getElementById('stockChangeLabel').textContent = '';
+  document.getElementById('stockToggleLabel').innerHTML = 'Tap to add or remove parts from inventory';
 }
 
-function quickLog(taskName,engine) {
-  if(state.loggedTasks.find(l=>l.task===taskName)){showToast(`${taskName} already logged ✓`);return;}
-  openLogForm(taskName,engine);
+function quickLog(taskName, engine) {
+  const existing = state.loggedTasks.find(l => l.task === taskName);
+  if (existing) { showToast(`${taskName} already logged ✓`); return; }
+  openLogForm(taskName, engine);
 }
 
 function closeLogForm() {
   document.getElementById('logOverlay').classList.remove('open');
-  pendingPhotos=[];document.getElementById('photoPreviews').innerHTML='';document.getElementById('fPhotos').value='';
+  pendingPhotos = [];
+  document.getElementById('photoPreviews').innerHTML = '';
+  document.getElementById('fPhotos').value = '';
   resetStockPanel();
 }
 
 function toggleStockPanel() {
-  const panel=document.getElementById('stockPanel'),arrow=document.getElementById('stockArrow'),isOpen=panel.classList.contains('open');
-  panel.classList.toggle('open',!isOpen);arrow.classList.toggle('open',!isOpen);
-  if(!isOpen){document.getElementById('fStockPart').innerHTML='<option value="">— Select a part —</option>'+inventory.map(i=>`<option value="${i.id}">${i.name} (${i.stock!==null?i.stock+' in stock':'NO DATA'})</option>`).join('');}
+  const panel = document.getElementById('stockPanel');
+  const arrow = document.getElementById('stockArrow');
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  arrow.classList.toggle('open', !isOpen);
+  if (!isOpen) {
+    document.getElementById('fStockPart').innerHTML = '<option value="">— Select a part —</option>' +
+      inventory.map(i => `<option value="${i.id}">${i.name} (${i.stock !== null ? i.stock + ' in stock' : 'NO DATA'})</option>`).join('');
+  }
 }
 
 function onStockPartChange() {
-  const id=document.getElementById('fStockPart').value;
-  if(!id){resetStockPanel();return;}
-  const part=inventory.find(i=>i.id===id);if(!part)return;
-  pendingStock={partId:id,partName:part.name,delta:0,originalStock:part.stock||0};
-  document.getElementById('stockCurrentDisplay').textContent=part.stock!==null?part.stock:0;
-  document.getElementById('stockChangeLabel').textContent='';
-  document.getElementById('stockToggleLabel').innerHTML=`<span>${part.name}</span>`;
+  const id = document.getElementById('fStockPart').value;
+  if (!id) { resetStockPanel(); return; }
+  const part = inventory.find(i => i.id === id);
+  if (!part) return;
+  pendingStock = { partId: id, partName: part.name, delta: 0, originalStock: part.stock || 0 };
+  document.getElementById('stockCurrentDisplay').textContent = part.stock !== null ? part.stock : 0;
+  document.getElementById('stockChangeLabel').textContent = '';
+  document.getElementById('stockToggleLabel').innerHTML = `<span>${part.name}</span>`;
 }
 
 function adjustStock(dir) {
-  if(!pendingStock.partId){showToast('Select a part first');return;}
-  pendingStock.delta+=dir;
-  const nv=Math.max(0,(pendingStock.originalStock||0)+pendingStock.delta);
-  document.getElementById('stockCurrentDisplay').textContent=nv;
-  const lbl=document.getElementById('stockChangeLabel');
-  if(pendingStock.delta>0){lbl.textContent=`+${pendingStock.delta} added`;lbl.className='stock-adj-change adding';}
-  else if(pendingStock.delta<0){lbl.textContent=`${pendingStock.delta} removed`;lbl.className='stock-adj-change removing';}
-  else{lbl.textContent='No change';lbl.className='stock-adj-change';}
+  if (!pendingStock.partId) { showToast('Select a part first'); return; }
+  pendingStock.delta += dir;
+  const newVal = Math.max(0, (pendingStock.originalStock || 0) + pendingStock.delta);
+  document.getElementById('stockCurrentDisplay').textContent = newVal;
+  const lbl = document.getElementById('stockChangeLabel');
+  if (pendingStock.delta > 0) { lbl.textContent = `+${pendingStock.delta} added`; lbl.className = 'stock-adj-change adding'; }
+  else if (pendingStock.delta < 0) { lbl.textContent = `${pendingStock.delta} removed`; lbl.className = 'stock-adj-change removing'; }
+  else { lbl.textContent = 'No change'; lbl.className = 'stock-adj-change'; }
 }
 
-function overlayClick(e){if(e.target===document.getElementById('logOverlay'))closeLogForm();}
-function toggleChip(el){el.classList.toggle('selected');}
+function overlayClick(e) {
+  if (e.target === document.getElementById('logOverlay')) closeLogForm();
+}
+
+function toggleChip(el) { el.classList.toggle('selected'); }
 
 function submitLog() {
-  const task=document.getElementById('fTask').value.trim(),dateV=document.getElementById('fDate').value,hrs=document.getElementById('fHours').value,notes=document.getElementById('fNotes').value.trim(),cost=document.getElementById('fCost').value.trim(),tech=document.getElementById('fTech').value.trim();
-  if(!task){showToast('Please enter a task name');return;}
-  if(!dateV){showToast('Please select a date');return;}
-  const selectedEngines=[...document.querySelectorAll('.engine-chip.selected')].map(c=>c.dataset.eng);
-  if(!selectedEngines.length){showToast('Select at least one engine/system');return;}
-  const dateStr=formatDate(new Date(dateV));
-  let stockChange=null;
-  if(pendingStock.partId&&pendingStock.delta!==0){const part=inventory.find(i=>i.id===pendingStock.partId);if(part){const old=part.stock||0;part.stock=Math.max(0,old+pendingStock.delta);stockChange={partId:pendingStock.partId,partName:pendingStock.partName,delta:pendingStock.delta,newStock:part.stock};}}
-  state.loggedTasks.push({task,date:dateStr,engines:selectedEngines,hours:hrs?parseInt(hrs):null,notes,cost,tech,photos:[...pendingPhotos],stockChange});
-  if(hrs){if(selectedEngines.includes('port')){state.portHrs=Math.max(state.portHrs,parseInt(hrs));document.getElementById('portHrs').value=state.portHrs;}if(selectedEngines.includes('stbd')){state.stbdHrs=Math.max(state.stbdHrs,parseInt(hrs));document.getElementById('stbdHrs').value=state.stbdHrs;}}
-  selectedEngines.forEach(eng=>{if(eng==='port'||eng==='stbd'){const tsk=engineTasks.find(t=>t.name===task);if(tsk){tsk[eng].lastDate=dateStr;if(hrs)tsk[eng].lastHrs=parseInt(hrs);if(tsk[eng].nextDate!==null&&tsk[eng].nextHrs===null){tsk[eng].nextDate=calcNextDate(dateStr,tsk.freq);}}}});
-  const schedTask=scheduledTasks.find(t=>t.name===task);if(schedTask){schedTask.lastDate=dateStr;const nd=calcNextDate(dateStr,schedTask.interval);if(nd)schedTask.nextDate=nd;}
+  const task  = document.getElementById('fTask').value.trim();
+  const dateV = document.getElementById('fDate').value;
+  const hrs   = document.getElementById('fHours').value;
+  const notes = document.getElementById('fNotes').value.trim();
+  const cost  = document.getElementById('fCost').value.trim();
+  const tech  = document.getElementById('fTech').value.trim();
+
+  if (!task)  { showToast('Please enter a task name'); return; }
+  if (!dateV) { showToast('Please select a date'); return; }
+
+  const selectedEngines = [...document.querySelectorAll('.engine-chip.selected')].map(c=>c.dataset.eng);
+  if (!selectedEngines.length) { showToast('Select at least one engine/system'); return; }
+
+  const dateStr = formatDate(new Date(dateV));
+
+  let stockChange = null;
+  if (pendingStock.partId && pendingStock.delta !== 0) {
+    const part = inventory.find(i => i.id === pendingStock.partId);
+    if (part) {
+      const oldStock = part.stock || 0;
+      part.stock = Math.max(0, oldStock + pendingStock.delta);
+      stockChange = { partId: pendingStock.partId, partName: pendingStock.partName, delta: pendingStock.delta, newStock: part.stock };
+    }
+  }
+
+  state.loggedTasks.push({ task, date: dateStr, engines: selectedEngines, hours: hrs ? parseInt(hrs) : null, notes, cost, tech, photos: [...pendingPhotos], stockChange });
+
+  if (hrs) {
+    if (selectedEngines.includes('port')) {
+      state.portHrs = Math.max(state.portHrs, parseInt(hrs));
+      document.getElementById('portHrs').value = state.portHrs;
+    }
+    if (selectedEngines.includes('stbd')) {
+      state.stbdHrs = Math.max(state.stbdHrs, parseInt(hrs));
+      document.getElementById('stbdHrs').value = state.stbdHrs;
+    }
+  }
+
+  selectedEngines.forEach(eng => {
+    if (eng === 'port' || eng === 'stbd') {
+      const tsk = engineTasks.find(t => t.name === task);
+      if (tsk) {
+        tsk[eng].lastDate = dateStr;
+        if (hrs) tsk[eng].lastHrs = parseInt(hrs);
+        // Recalculate nextDate for date-based tasks
+        // Update nextDate if task is date-based (no nextHrs) regardless of whether nextDate was set
+        if (tsk[eng].nextHrs === null) {
+          const nd = calcNextDate(dateStr, tsk.freq);
+          if (nd) tsk[eng].nextDate = nd;
+        }
+      }
+    }
+  });
+
+  // Also recalculate scheduled tasks
+  const schedTask = scheduledTasks.find(t => t.task === task || t.name === task);
+  if (schedTask) {
+    schedTask.lastDate = dateStr;
+    const nd = calcNextDate(dateStr, schedTask.interval);
+    if (nd) schedTask.nextDate = nd;
+  }
+
   saveState();
   closeLogForm();
-  showToast(`✓ ${task} logged${stockChange?` · ${stockChange.partName} → ${stockChange.newStock} in stock`:''}`);
+  const stockMsg = stockChange ? ` · ${stockChange.partName} → ${stockChange.newStock} in stock` : '';
+  showToast(`✓ ${task} logged${stockMsg}`);
   renderAll();
 }
 
 function copyExport() {
-  const text=document.getElementById('exportText').textContent;
-  if(!state.loggedTasks.length){showToast('Log tasks first');return;}
-  navigator.clipboard.writeText(text).then(()=>{const btn=document.getElementById('copyBtn');btn.textContent='✓ Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copy to Clipboard';btn.classList.remove('copied');},2500);}).catch(()=>{const el=document.createElement('textarea');el.value=text;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);showToast('Copied!');});
+  const text = document.getElementById('exportText').textContent;
+  if (!state.loggedTasks.length) { showToast('Log tasks first'); return; }
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy to Clipboard'; btn.classList.remove('copied'); }, 2500);
+  }).catch(() => {
+    const el = document.createElement('textarea');
+    el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
+    showToast('Copied!');
+  });
+}
+
+// ── Add Part (001 + 003) ──────────────────────────────────────────
+function toggleAddPart() {
+  const f = document.getElementById('addPartForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function addNewPart() {
+  const name = document.getElementById('npName').value.trim();
+  if (!name) { showToast('Please enter a part name'); return; }
+  const newId = 'USR-' + Date.now();
+  inventory.push({
+    id: newId,
+    cat:     document.getElementById('npCat').value.trim() || 'General',
+    name,
+    partNum: document.getElementById('npPartNum').value.trim() || null,
+    vendor:  document.getElementById('npVendor').value.trim() || null,
+    stock:   parseInt(document.getElementById('npStock').value) || 0,
+    cost:    null,
+    notes:   document.getElementById('npNotes').value.trim() || '',
+    userAdded: true,
+  });
+  ['npName','npCat','npPartNum','npVendor','npStock','npNotes'].forEach(id => document.getElementById(id).value = '');
+  toggleAddPart();
+  saveState();
+  renderInventory();
+  showToast('✓ Part added');
+}
+
+// ── Add Scheduled Task (002) ──────────────────────────────────────
+function toggleAddTask() {
+  const f = document.getElementById('addTaskForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function addNewTask() {
+  const name = document.getElementById('ntName').value.trim();
+  if (!name) { showToast('Please enter a task name'); return; }
+  const rawDate = document.getElementById('ntNextDate').value;
+  const nextDate = rawDate ? formatDate(new Date(rawDate)) : null;
+  scheduledTasks.push({
+    name,
+    lastDate:  '—',
+    nextDate,
+    interval:  document.getElementById('ntInterval').value.trim() || 'annual',
+    notes:     document.getElementById('ntNotes').value.trim() || '',
+    userAdded: true,
+  });
+  ['ntName','ntInterval','ntNextDate','ntNotes'].forEach(id => document.getElementById(id).value = '');
+  toggleAddTask();
+  saveState();
+  renderDashboard();
+  showToast('✓ Task added');
 }
 
 function handleBoatPhoto(event) {
@@ -976,6 +1568,7 @@ function handleBoatPhoto(event) {
   r.onload = e => {
     const img = new Image();
     img.onload = () => {
+      // Compress to max 800px wide and 70% quality to fit localStorage
       const canvas = document.createElement('canvas');
       const maxW = 800;
       const scale = Math.min(1, maxW / img.width);
@@ -1109,8 +1702,16 @@ function deletePart(idx) {
   showToast('Part removed');
 }
 
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
-function formatDate(d){const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return `${String(d.getDate()).padStart(2,'0')}-${m[d.getMonth()]}-${d.getFullYear()}`;}
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg; toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function formatDate(d) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${String(d.getDate()).padStart(2,'0')}-${months[d.getMonth()]}-${d.getFullYear()}`;
+}
 
 function calcNextDate(fromDateStr, freq) {
   const d = parseDate(fromDateStr);
@@ -1118,210 +1719,94 @@ function calcNextDate(fromDateStr, freq) {
   const f = freq.toLowerCase();
   const nd = new Date(d);
   if (f.includes('3 month') || f.includes('quarterly')) nd.setMonth(nd.getMonth() + 3);
-  else if (f.includes('6 month') || f.includes('half'))  nd.setMonth(nd.getMonth() + 6);
-  else if (f.includes('24 month'))                        nd.setFullYear(nd.getFullYear() + 2);
-  else if (f.includes('2 year'))                          nd.setFullYear(nd.getFullYear() + 2);
-  else if (f.includes('3 year'))                          nd.setFullYear(nd.getFullYear() + 3);
-  else if (f.includes('4 year'))                          nd.setFullYear(nd.getFullYear() + 4);
-  else if (f.includes('5 year'))                          nd.setFullYear(nd.getFullYear() + 5);
+  else if (f.includes('6 month') || f.includes('half')) nd.setMonth(nd.getMonth() + 6);
+  else if (f.includes('24 month'))                       nd.setFullYear(nd.getFullYear() + 2);
+  else if (f.includes('2 year'))                         nd.setFullYear(nd.getFullYear() + 2);
+  else if (f.includes('3 year'))                         nd.setFullYear(nd.getFullYear() + 3);
+  else if (f.includes('4 year'))                         nd.setFullYear(nd.getFullYear() + 4);
+  else if (f.includes('5 year'))                         nd.setFullYear(nd.getFullYear() + 5);
   else if (f.includes('annual') || f.includes('yearly') || f === '1 year') nd.setFullYear(nd.getFullYear() + 1);
   else return null;
   return formatDate(nd);
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// PHOTO NOTES
+// ═══════════════════════════════════════════════════════════════════
 function handlePhotoSelect(event) {
-  Array.from(event.target.files).forEach(file=>{if(!file.type.startsWith('image/'))return;const r=new FileReader();r.onload=e=>{pendingPhotos.push({dataUrl:e.target.result,name:file.name});renderPhotoPreviews();};r.readAsDataURL(file);});event.target.value='';
+  Array.from(event.target.files).forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => { pendingPhotos.push({ dataUrl: e.target.result, name: file.name }); renderPhotoPreviews(); };
+    reader.readAsDataURL(file);
+  });
+  event.target.value = '';
 }
+
 function renderPhotoPreviews() {
-  let html='';pendingPhotos.forEach((p,i)=>{html+=`<div class="photo-thumb-wrap"><img src="${p.dataUrl}" onclick="openPendingViewer(${i})"><button class="photo-thumb-del" onclick="removePhoto(${i})">✕</button></div>`;});
-  document.getElementById('photoPreviews').innerHTML=html;
-  const lbl=document.querySelector('.photo-upload-label');lbl.innerHTML=pendingPhotos.length?`<span>${pendingPhotos.length} photo${pendingPhotos.length>1?'s':''} added</span> · tap to add more`:`Tap to take photo or <span>choose from library</span>`;
-}
-function removePhoto(idx){pendingPhotos.splice(idx,1);renderPhotoPreviews();}
-
-let viewerPhotos=[],viewerIdx=0;
-function openViewer(ei,pi,event){event&&event.stopPropagation();const e=(window._logEntries||[])[ei];if(!e||!e.photos||!e.photos.length)return;viewerPhotos=e.photos;viewerIdx=pi;showViewerAt(pi);document.getElementById('photoViewer').classList.add('open');}
-function openPendingViewer(idx){viewerPhotos=pendingPhotos;viewerIdx=idx;showViewerAt(idx);document.getElementById('photoViewer').classList.add('open');}
-function showViewerAt(idx){viewerIdx=Math.max(0,Math.min(idx,viewerPhotos.length-1));document.getElementById('viewerImg').src=viewerPhotos[viewerIdx].dataUrl;document.getElementById('viewerTitle').textContent=`Photo ${viewerIdx+1} of ${viewerPhotos.length}`;let dots='';viewerPhotos.forEach((_,i)=>{dots+=`<div class="photo-nav-dot ${i===viewerIdx?'active':''}" onclick="showViewerAt(${i})"></div>`;});document.getElementById('viewerDots').innerHTML=dots;document.getElementById('arrowPrev').style.visibility=viewerIdx>0?'visible':'hidden';document.getElementById('arrowNext').style.visibility=viewerIdx<viewerPhotos.length-1?'visible':'hidden';}
-function viewerNav(dir){showViewerAt(viewerIdx+dir);}
-function closeViewer(){document.getElementById('photoViewer').classList.remove('open');}
-
-let touchStartX=0;
-document.addEventListener('touchstart',e=>{if(document.getElementById('photoViewer').classList.contains('open'))touchStartX=e.touches[0].clientX;});
-document.addEventListener('touchend',e=>{if(!document.getElementById('photoViewer').classList.contains('open'))return;const diff=touchStartX-e.changedTouches[0].clientX;if(Math.abs(diff)>50)viewerNav(diff>0?1:-1);});
-
-// ── localStorage helpers ──────────────────────────────────────────
-const STORAGE_KEY = 'vessellog_template';
-
-function saveState() {
-  try {
-    const toSave = {
-      portHrs: state.portHrs,
-      stbdHrs: state.stbdHrs,
-      loggedTasks: state.loggedTasks,
-      engineTaskOverrides: engineTasks.map(t => ({
-        name: t.name,
-        port: { lastDate: t.port.lastDate, lastHrs: t.port.lastHrs, nextHrs: t.port.nextHrs, nextDate: t.port.nextDate },
-        stbd: { lastDate: t.stbd.lastDate, lastHrs: t.stbd.lastHrs, nextHrs: t.stbd.nextHrs, nextDate: t.stbd.nextDate },
-      })),
-      inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock, notes: i.notes || '' })),
-      userAddedParts: inventory.filter(i => i.userAdded),
-      userAddedTasks: scheduledTasks.filter(t => t.userAdded),
-      scheduledTaskOverrides: scheduledTasks.filter(t => !t.userAdded).map(t => ({ name: t.name, lastDate: t.lastDate, nextDate: t.nextDate })),
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-    // Save persistent data (survives Clear Saved Data)
-    const persistent = {
-      portHrs: state.portHrs,
-      stbdHrs: state.stbdHrs,
-      inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock, notes: i.notes || '' })),
-      userAddedParts: inventory.filter(i => i.userAdded),
-      engineTaskOverrides: toSave.engineTaskOverrides,
-      scheduledTaskOverrides: toSave.scheduledTaskOverrides,
-      userAddedTasks: toSave.userAddedTasks,
-    };
-    localStorage.setItem(STORAGE_KEY + '_persist', JSON.stringify(persistent));
-  } catch(e) { console.warn('Save failed:', e); }
-}
-
-function loadState() {
-  const mainExists = !!localStorage.getItem(STORAGE_KEY);
-  // Load persistent data first (baseline that survives Clear Saved Data)
-  try {
-    const ps = localStorage.getItem(STORAGE_KEY + '_persist');
-    if (ps) {
-      const pd = JSON.parse(ps);
-      if (pd.portHrs) { state.portHrs = pd.portHrs; document.getElementById('portHrs').value = pd.portHrs; }
-      if (pd.stbdHrs) { state.stbdHrs = pd.stbdHrs; document.getElementById('stbdHrs').value = pd.stbdHrs; }
-      if (pd.inventoryStock) pd.inventoryStock.forEach(s => { const item = inventory.find(i => i.id === s.id); if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; } });
-      if (pd.userAddedParts) pd.userAddedParts.forEach(p => { if (!inventory.find(i => i.id === p.id)) inventory.push(p); });
-      if (pd.engineTaskOverrides) pd.engineTaskOverrides.forEach(override => { const task = engineTasks.find(t => t.name === override.name); if (task) { task.port.lastDate=override.port.lastDate; task.port.lastHrs=override.port.lastHrs; task.port.nextHrs=override.port.nextHrs; task.port.nextDate=override.port.nextDate; task.stbd.lastDate=override.stbd.lastDate; task.stbd.lastHrs=override.stbd.lastHrs; task.stbd.nextHrs=override.stbd.nextHrs; task.stbd.nextDate=override.stbd.nextDate; } });
-      if (pd.scheduledTaskOverrides) pd.scheduledTaskOverrides.forEach(override => { const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded); if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; } });
-      if (pd.userAddedTasks) pd.userAddedTasks.forEach(t => { if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t); });
-    }
-  } catch(e) { console.warn('Persist load failed:', e); }
-  // Then load main session state — overwrites persist where present
-  if (!mainExists) return;
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const data = JSON.parse(saved);
-    if (data.portHrs) { state.portHrs = data.portHrs; document.getElementById('portHrs').value = data.portHrs; }
-    if (data.stbdHrs) { state.stbdHrs = data.stbdHrs; document.getElementById('stbdHrs').value = data.stbdHrs; }
-    if (data.loggedTasks) state.loggedTasks = data.loggedTasks;
-    if (data.engineTaskOverrides) {
-      data.engineTaskOverrides.forEach(override => {
-        const task = engineTasks.find(t => t.name === override.name);
-        if (task) {
-          task.port.lastDate = override.port.lastDate; task.port.lastHrs = override.port.lastHrs;
-          task.port.nextHrs  = override.port.nextHrs;  task.port.nextDate = override.port.nextDate;
-          task.stbd.lastDate = override.stbd.lastDate; task.stbd.lastHrs = override.stbd.lastHrs;
-          task.stbd.nextHrs  = override.stbd.nextHrs;  task.stbd.nextDate = override.stbd.nextDate;
-        }
-      });
-    }
-    if (data.scheduledTaskOverrides) {
-      data.scheduledTaskOverrides.forEach(override => {
-        const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded);
-        if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; }
-      });
-    }
-    if (data.inventoryStock) {
-      data.inventoryStock.forEach(s => {
-        const item = inventory.find(i => i.id === s.id);
-        if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; }
-      });
-    }
-    if (data.userAddedParts) {
-      data.userAddedParts.forEach(p => {
-        if (!inventory.find(i => i.id === p.id)) inventory.push(p);
-      });
-    }
-    if (data.userAddedTasks) {
-      data.userAddedTasks.forEach(t => {
-        if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t);
-      });
-    }
-  } catch(e) { console.warn('Load failed:', e); }
-}
-
-function clearLocalData() {
-  if (!confirm('This will clear all saved tasks, added parts and hours from this device. Are you sure?')) return;
-  localStorage.removeItem(STORAGE_KEY);
-  // Keep _persist so engine hours and inventory survive
-  location.reload();
-}
-
-// ── Add Part (001 + 003) ──────────────────────────────────────────
-function toggleAddPart() {
-  const f = document.getElementById('addPartForm');
-  f.style.display = f.style.display === 'none' ? 'block' : 'none';
-}
-
-function addNewPart() {
-  const name = document.getElementById('npName').value.trim();
-  if (!name) { showToast('Please enter a part name'); return; }
-  const newId = 'USR-' + Date.now();
-  inventory.push({
-    id: newId,
-    cat:     document.getElementById('npCat').value.trim() || 'General',
-    name,
-    partNum: document.getElementById('npPartNum').value.trim() || null,
-    vendor:  document.getElementById('npVendor').value.trim() || null,
-    stock:   parseInt(document.getElementById('npStock').value) || 0,
-    cost:    null,
-    notes:   document.getElementById('npNotes').value.trim() || '',
-    userAdded: true,
+  let html = '';
+  pendingPhotos.forEach((p, i) => {
+    html += `<div class="photo-thumb-wrap"><img src="${p.dataUrl}" alt="Photo ${i+1}" onclick="openPendingViewer(${i})"><button class="photo-thumb-del" onclick="removePhoto(${i})">✕</button></div>`;
   });
-  ['npName','npCat','npPartNum','npVendor','npStock','npNotes'].forEach(id => document.getElementById(id).value = '');
-  toggleAddPart();
-  saveState();
-  renderInventory();
-  showToast('✓ Part added');
+  document.getElementById('photoPreviews').innerHTML = html;
+  const label = document.querySelector('.photo-upload-label');
+  label.innerHTML = pendingPhotos.length ? `<span>${pendingPhotos.length} photo${pendingPhotos.length>1?'s':''} added</span> · tap to add more` : `Tap to take photo or <span>choose from library</span>`;
 }
 
-// ── Add Scheduled Task (002) ──────────────────────────────────────
-function toggleAddTask() {
-  const f = document.getElementById('addTaskForm');
-  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+function removePhoto(idx) { pendingPhotos.splice(idx, 1); renderPhotoPreviews(); }
+
+let viewerPhotos = [], viewerIdx = 0;
+
+function openViewer(entryIdx, photoIdx, event) {
+  event && event.stopPropagation();
+  const entry = (window._logEntries || [])[entryIdx];
+  if (!entry || !entry.photos || !entry.photos.length) return;
+  viewerPhotos = entry.photos; viewerIdx = photoIdx;
+  showViewerAt(viewerIdx); document.getElementById('photoViewer').classList.add('open');
 }
 
-function addNewTask() {
-  const name = document.getElementById('ntName').value.trim();
-  if (!name) { showToast('Please enter a task name'); return; }
-  const rawDate = document.getElementById('ntNextDate').value;
-  const nextDate = rawDate ? formatDate(new Date(rawDate)) : null;
-  scheduledTasks.push({
-    name,
-    lastDate:  '—',
-    nextDate,
-    interval:  document.getElementById('ntInterval').value.trim() || 'annual',
-    notes:     document.getElementById('ntNotes').value.trim() || '',
-    userAdded: true,
-  });
-  ['ntName','ntInterval','ntNextDate','ntNotes'].forEach(id => document.getElementById(id).value = '');
-  toggleAddTask();
-  saveState();
-  renderDashboard();
-  showToast('✓ Task added');
+function openPendingViewer(idx) {
+  viewerPhotos = pendingPhotos; viewerIdx = idx;
+  showViewerAt(viewerIdx); document.getElementById('photoViewer').classList.add('open');
 }
 
+function showViewerAt(idx) {
+  viewerIdx = Math.max(0, Math.min(idx, viewerPhotos.length - 1));
+  document.getElementById('viewerImg').src = viewerPhotos[viewerIdx].dataUrl;
+  document.getElementById('viewerTitle').textContent = `Photo ${viewerIdx+1} of ${viewerPhotos.length}`;
+  let dots = '';
+  viewerPhotos.forEach((_, i) => { dots += `<div class="photo-nav-dot ${i===viewerIdx?'active':''}" onclick="showViewerAt(${i})"></div>`; });
+  document.getElementById('viewerDots').innerHTML = dots;
+  document.getElementById('arrowPrev').style.visibility = viewerIdx > 0 ? 'visible' : 'hidden';
+  document.getElementById('arrowNext').style.visibility = viewerIdx < viewerPhotos.length-1 ? 'visible' : 'hidden';
+}
+
+function viewerNav(dir) { showViewerAt(viewerIdx + dir); }
+function closeViewer() { document.getElementById('photoViewer').classList.remove('open'); }
+
+let touchStartX = 0;
+document.addEventListener('touchstart', e => {
+  if (document.getElementById('photoViewer').classList.contains('open')) touchStartX = e.touches[0].clientX;
+});
+document.addEventListener('touchend', e => {
+  if (!document.getElementById('photoViewer').classList.contains('open')) return;
+  const diff = touchStartX - e.changedTouches[0].clientX;
+  if (Math.abs(diff) > 50) viewerNav(diff > 0 ? 1 : -1);
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
 function init() {
-  const now=new Date(),days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  document.getElementById('headerDate').textContent=`${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
-  document.getElementById('portHrs').value=state.portHrs;
-  document.getElementById('stbdHrs').value=state.stbdHrs;
-  // Single engine support (005)
-  if (typeof ENGINE_CONFIG !== 'undefined' && ENGINE_CONFIG === 'single') {
-    document.getElementById('tab-engine').classList.add('single-engine');
-    document.getElementById('stbdHrs').closest('.engine-input-wrap') && document.getElementById('stbdHrs').closest('.engine-input-wrap').style.setProperty('display','none');
-    // Hide stbd chip in log form
-    const stbdChip = document.querySelector('.engine-chip[data-eng="stbd"]');
-    if (stbdChip) stbdChip.style.display = 'none';
-  }
+  const now = new Date();
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('headerDate').textContent = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
   loadState();
   loadBoatPhoto();
   renderAll();
 }
+
 init();
 </script>
 </body>
