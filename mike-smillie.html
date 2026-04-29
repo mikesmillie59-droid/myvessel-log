@@ -555,11 +555,11 @@
     <div class="hours-bar">
       <div class="hours-pill">
         <span class="hours-pill-label">PORT HRS</span>
-        <input type="number" id="portHrs" value="360" min="0" max="9999" onchange="updateHours()">
+        <input type="number" id="portHrs" value="369" min="0" max="9999" onchange="updateHours()">
       </div>
       <div class="hours-pill">
         <span class="hours-pill-label">STBD HRS</span>
-        <input type="number" id="stbdHrs" value="364" min="0" max="9999" onchange="updateHours()">
+        <input type="number" id="stbdHrs" value="373" min="0" max="9999" onchange="updateHours()">
       </div>
     </div>
   </div>
@@ -908,8 +908,8 @@ function clearLocalData() {
 }
 
 let state = {
-  portHrs: 360,
-  stbdHrs: 364,
+  portHrs: 369,
+  stbdHrs: 373,
   loggedTasks: [],
 };
 
@@ -964,14 +964,16 @@ const inventory = [
 ];
 
 const maintenanceLog = [
-  { date:"03-Sep-2025", task:"Varnishing",           engine:"general", notes:"",                                                  tech:"" },
-  { date:"12-Oct-2025", task:"Antifouling",          engine:"general", notes:"",                                                  tech:"" },
-  { date:"15-Jan-2026", task:"Inverter",             engine:"general", notes:"Replaced Mastervolt battery/inverter with Victron", tech:"Pine Harbour Electrical" },
-  { date:"07-Mar-2026", task:"Painting - Cabin Top", engine:"general", notes:"Painted cabin top where solar panels were",         tech:"" },
-  { date:"08-Mar-2026", task:"Sanded teak",          engine:"general", notes:"Front cabin, nav housing, top of bridge",           tech:"" },
-  { date:"08-Mar-2026", task:"Zincs",                engine:"general", notes:"Replaced zincs in oil exchangers and water coolers",tech:"" },
-  { date:"15-Mar-2026", task:"Injector oil",         engine:"port+stbd", notes:"",                                               tech:"" },
-  { date:"15-Mar-2026", task:"Varnishing",           engine:"general", notes:"Additional coat on front cabin top and rub rail",  tech:"" },
+  { date:"03-Sep-2025", task:"Varnishing",           engine:"general",   notes:"",                                                   tech:"" },
+  { date:"12-Oct-2025", task:"Antifouling",          engine:"general",   notes:"",                                                   tech:"" },
+  { date:"15-Jan-2026", task:"Inverter",             engine:"general",   notes:"Replaced Mastervolt battery/inverter with Victron",  tech:"Pine Harbour Electrical" },
+  { date:"07-Mar-2026", task:"Painting - Cabin Top", engine:"general",   notes:"Painted cabin top where solar panels were",          tech:"" },
+  { date:"08-Mar-2026", task:"Sanded teak",          engine:"general",   notes:"Front cabin, nav housing, top of bridge",            tech:"" },
+  { date:"08-Mar-2026", task:"Zincs",                engine:"general",   notes:"Replaced zincs in oil exchangers and water coolers", tech:"" },
+  { date:"15-Mar-2026", task:"Injector oil",         engine:"port+stbd", notes:"",                                                   tech:"" },
+  { date:"15-Mar-2026", task:"Varnishing",           engine:"general",   notes:"Additional coat on front cabin top and rub rail",    tech:"" },
+  { date:"27-Apr-2026", task:"Filled Water tanks",   engine:"general",   notes:"",                                                   tech:"" },
+  { date:"27-Jan-2026", task:"Soft top install",     engine:"general",   notes:"",                                                   tech:"Stainless Works", cost:"$11,257.87" },
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1158,8 +1160,8 @@ function renderLog() {
   const bakedCount = maintenanceLog.length;
   const all = [...maintenanceLog, ...state.loggedTasks.map(l => ({
     date: l.date, task: l.task, engine: l.engines.join('+'),
-    notes: l.notes, tech: l.tech, photos: l.photos || [],
-    isLogged: true
+    notes: l.notes, tech: l.tech, cost: l.cost, hours: l.hours,
+    photos: l.photos || [], isLogged: true
   }))].reverse();
 
   document.getElementById('logBadge').textContent = `${all.length} entries`;
@@ -1204,8 +1206,10 @@ function renderLog() {
       </div>
       <div class="log-entry-meta">
         <span class="log-entry-tag ${tagCls}">${engLabel.toUpperCase()}</span>
-        ${entry.notes ? entry.notes : ''}
-        ${entry.tech ? `<br>👤 ${entry.tech}` : ''}
+        ${entry.hours ? `<span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);margin-left:6px;">${entry.hours} hrs</span>` : ''}
+        ${entry.notes ? `<div style="margin-top:5px;">${entry.notes}</div>` : ''}
+        ${entry.tech  ? `<div style="margin-top:4px;">👤 ${entry.tech}</div>` : ''}
+        ${entry.cost  ? `<div style="margin-top:4px;">💲${entry.cost}</div>` : ''}
         ${photos.length ? `<span class="photo-count-badge">📷 ${photos.length} photo${photos.length>1?'s':''}</span>` : ''}
       </div>
       ${photoHtml}
@@ -1320,8 +1324,8 @@ function showTab(tab) {
 }
 
 function updateHours() {
-  state.portHrs = parseInt(document.getElementById('portHrs').value) || 360;
-  state.stbdHrs = parseInt(document.getElementById('stbdHrs').value) || 364;
+  state.portHrs = parseInt(document.getElementById('portHrs').value) || 369;
+  state.stbdHrs = parseInt(document.getElementById('stbdHrs').value) || 373;
   document.getElementById('portHrsDisplay').textContent = state.portHrs + ' hrs';
   document.getElementById('stbdHrsDisplay').textContent = state.stbdHrs + ' hrs';
   saveState();
