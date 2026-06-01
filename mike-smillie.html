@@ -555,11 +555,11 @@
     <div class="hours-bar">
       <div class="hours-pill">
         <span class="hours-pill-label">PORT HRS</span>
-        <input type="number" id="portHrs" value="369" min="0" max="9999" onchange="updateHours()">
+        <input type="number" id="portHrs" value="375" min="0" max="9999" onchange="updateHours()">
       </div>
       <div class="hours-pill">
         <span class="hours-pill-label">STBD HRS</span>
-        <input type="number" id="stbdHrs" value="373" min="0" max="9999" onchange="updateHours()">
+        <input type="number" id="stbdHrs" value="379" min="0" max="9999" onchange="updateHours()">
       </div>
     </div>
   </div>
@@ -908,8 +908,8 @@ function clearLocalData() {
 }
 
 let state = {
-  portHrs: 369,
-  stbdHrs: 373,
+  portHrs: 375,
+  stbdHrs: 379,
   loggedTasks: [],
 };
 
@@ -920,10 +920,10 @@ let pendingStock = { partId: null, partName: null, delta: 0, originalStock: null
 const engineTasks = [
   { name:"Oil and Filters",        freq:"200 hrs",    port:{ lastDate:"10-Apr-2026", lastHrs:360, nextHrs:560,  nextDate:null },        stbd:{ lastDate:"10-Apr-2026", lastHrs:364, nextHrs:564,  nextDate:null } },
   { name:"Injector oil",           freq:"50 hrs",     port:{ lastDate:"15-Mar-2026", lastHrs:349, nextHrs:399,  nextDate:null },        stbd:{ lastDate:"15-Mar-2026", lastHrs:354, nextHrs:404,  nextDate:null } },
-  { name:"Secondary Fuel Filter",  freq:"200 hrs",    port:{ lastDate:"01-Feb-2026", lastHrs:172, nextHrs:372,  nextDate:null },        stbd:{ lastDate:"01-Feb-2026", lastHrs:172, nextHrs:372,  nextDate:null } },
+  { name:"Secondary Fuel Filter",  freq:"200 hrs",    port:{ lastDate:"02-Jun-2026", lastHrs:369, nextHrs:569,  nextDate:null },        stbd:{ lastDate:"02-Jun-2026", lastHrs:372, nextHrs:572,  nextDate:null } },
   { name:"Primary Fuel Filter",    freq:"200 hrs",    port:{ lastDate:"18-Apr-2025", lastHrs:234, nextHrs:434,  nextDate:null },        stbd:{ lastDate:"18-Apr-2025", lastHrs:234, nextHrs:434,  nextDate:null } },
   { name:"Transmission Oil",       freq:"200 hrs",    port:{ lastDate:"07-Nov-2025", lastHrs:277, nextHrs:477,  nextDate:null },        stbd:{ lastDate:"07-Nov-2025", lastHrs:277, nextHrs:477,  nextDate:null } },
-  { name:"Zinc Pencils",           freq:"3 monthly",  port:{ lastDate:"08-Mar-2026", lastHrs:349, nextHrs:null, nextDate:"07-Jun-2026" }, stbd:{ lastDate:"08-Mar-2026", lastHrs:349, nextHrs:null, nextDate:"07-Jun-2026" } },
+  { name:"Zinc Pencils",           freq:"3 monthly",  port:{ lastDate:"02-Jun-2026", lastHrs:375, nextHrs:null, nextDate:"01-Sep-2026" }, stbd:{ lastDate:"02-Jun-2026", lastHrs:379, nextHrs:null, nextDate:"01-Sep-2026" } },
   { name:"Raw Water Impeller",     freq:"annual",     port:{ lastDate:"10-Aug-2025", lastHrs:null,nextHrs:null, nextDate:"08-Oct-2026" }, stbd:{ lastDate:"10-Aug-2025", lastHrs:null,nextHrs:null, nextDate:"08-Oct-2026" } },
   { name:"Coolant",                freq:"2 yearly",   port:{ lastDate:"03-Sep-2025", lastHrs:null,nextHrs:null, nextDate:"03-Sep-2027" }, stbd:{ lastDate:"03-Sep-2025", lastHrs:null,nextHrs:null, nextDate:"03-Sep-2027" } },
   { name:"Fuelrite",               freq:"yearly",     port:{ lastDate:"07-Mar-2026", lastHrs:null,nextHrs:null, nextDate:"03-Jul-2027" }, stbd:{ lastDate:"07-Mar-2026", lastHrs:null,nextHrs:null, nextDate:"03-Jul-2027" } },
@@ -940,7 +940,7 @@ const engineTasks = [
 const scheduledTasks = [
   { name:"House Batteries",                 lastDate:"01-Mar-2023", nextDate:"01-Mar-2028", interval:"5 years" },
   { name:"Start Batteries",                 lastDate:"—",           nextDate:null,           interval:"5 years" },
-  { name:"Varnishing",                      lastDate:"03-Sep-2025", nextDate:"03-Sep-2026", interval:"1 year" },
+  { name:"Varnishing",                      lastDate:"02-Jun-2026", nextDate:"02-Jun-2027", interval:"1 year" },
   { name:"Antifouling",                     lastDate:"12-Oct-2025", nextDate:"12-Oct-2027", interval:"24 months" },
   { name:"Through-Hulls & Seacocks",        lastDate:"—",           nextDate:null,           interval:"annual", notes:"Exercise all seacocks annually; check for seizing" },
   { name:"Bilge Pumps",                     lastDate:"—",           nextDate:null,           interval:"annual", notes:"Test auto float switch and manual pump annually" },
@@ -949,7 +949,7 @@ const scheduledTasks = [
 
 const inventory = [
   { id:"INV-001", cat:"Oil",             name:"Oil and Filters",        partNum:"Z9 Ryco Filter; Castrol 15w40",  vendor:null,                stock:2,    cost:null },
-  { id:"INV-002", cat:"Fuel",            name:"Secondary Fuel Filters", partNum:"Ryco R2132P",                    vendor:"TDX Ltd",           stock:10,   cost:8.01 },
+  { id:"INV-002", cat:"Fuel",            name:"Secondary Fuel Filters", partNum:"Ryco R2132P",                    vendor:"TDX Ltd",           stock:8,   cost:8.01 },
   { id:"INV-003", cat:"Fuel",            name:"Primary Fuel Filter",    partNum:"Racor 500 — 2010PM 30mic",       vendor:"Diesel HQ Ltd",     stock:10,   cost:13.80 },
   { id:"INV-004", cat:"Fuel",            name:"Fuel Pump",              partNum:"Ford Industrial FNH",            vendor:"APUK",              stock:1,    cost:null },
   { id:"INV-005", cat:"Impeller",        name:"Raw Water Impeller",     partNum:"Johnson SPXFLOW 09-1028BT-1",    vendor:null,                stock:2,    cost:null },
@@ -972,6 +972,11 @@ const maintenanceLog = [
   { date:"08-Mar-2026", task:"Zincs",                engine:"general",   notes:"Replaced zincs in oil exchangers and water coolers", tech:"" },
   { date:"15-Mar-2026", task:"Injector oil",         engine:"port+stbd", notes:"",                                                   tech:"" },
   { date:"15-Mar-2026", task:"Varnishing",           engine:"general",   notes:"Additional coat on front cabin top and rub rail",    tech:"" },
+  { date:"02-Jun-2026", task:"Solar Setup",              engine:"general",   notes:"Install Cerbo GX, Smart Solar MPPT",                                              tech:"PHE", cost:"$6,973.25" },
+  { date:"02-Jun-2026", task:"Secondary Fuel Filter",   engine:"port",      notes:"Replaced 2 x secondary fuel filters @ 369 hrs",                                   tech:"" },
+  { date:"02-Jun-2026", task:"Secondary Fuel Filter",   engine:"stbd",      notes:"Replaced 2 x secondary fuel filters @ 372 hrs",                                   tech:"" },
+  { date:"02-Jun-2026", task:"Varnishing",              engine:"general",   notes:"Cabin floor — 3 coats Norski Varnish",                                             tech:"" },
+  { date:"02-Jun-2026", task:"Zinc Pencils",            engine:"port+stbd", notes:"Replaced heat exchanger zincs. Port reasonable. Stbd quite corroded. Long pencil port, short pencil stbd.", tech:"" },
   { date:"27-Apr-2026", task:"Filled Water tanks",   engine:"general",   notes:"",                                                   tech:"" },
   { date:"27-Jan-2026", task:"Soft top install",     engine:"general",   notes:"",                                                   tech:"Stainless Works", cost:"$11,257.87" },
 ];
