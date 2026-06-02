@@ -1167,7 +1167,7 @@ function renderLog() {
     date: l.date, task: l.task, engine: l.engines.join('+'),
     notes: l.notes, tech: l.tech, cost: l.cost, hours: l.hours,
     photos: l.photos || [], isLogged: true
-  }))].reverse();
+  }))].sort((a, b) => parseDate(b.date) - parseDate(a.date));
 
   document.getElementById('logBadge').textContent = `${all.length} entries`;
   if (!all.length) {
