@@ -651,7 +651,10 @@ input[type=date]::-webkit-inner-spin-button{display:none;-webkit-appearance:none
   <div class="section" id="tab-log">
     <div class="sec-header">
       <div class="sec-title">Maintenance Log</div>
-      <div class="sec-badge" id="logBadge">0 entries</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="sec-badge" id="logBadge">0 entries</div>
+        <button class="add-btn" onclick="openLogForm()">＋ Log Maintenance</button>
+      </div>
     </div>
     <div id="logList"></div>
   </div>
@@ -695,8 +698,6 @@ input[type=date]::-webkit-inner-spin-button{display:none;-webkit-appearance:none
 
 </div><!-- .app -->
 
-<!-- FAB -->
-<button class="fab" onclick="fabAction()">＋</button>
 
 <!-- Bottom nav -->
 <div class="bottom-nav">
