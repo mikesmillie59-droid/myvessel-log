@@ -550,6 +550,7 @@ input[type=date]::-webkit-inner-spin-button{display:none;-webkit-appearance:none
         <div class="vessel-name">⚓ VESSEL <span>LOG</span></div>
         <div class="header-date" id="headerDate">—</div>
       </div>
+      <button class="settings-btn" onclick="openBackup()" title="Backup & Restore" aria-label="Backup and restore">⚙</button>
     </div>
     <div class="boat-photo-wrap" onclick="document.getElementById('boatPhotoInput').click()" id="boatPhotoWrap">
       <div class="boat-photo-placeholder" id="boatPhotoPlaceholder">📷 Tap to add your boat photo</div>
@@ -2128,6 +2129,106 @@ function deleteTrip(id){
   state.trips = (state.trips||[]).filter(t=>t.id!==id);
   saveState();
   renderTrips();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BACKUP & RESTORE — keep your logbook safe / move it between devices
+// ═══════════════════════════════════════════════════════════════════
+(function(){
+  const css = `
+  .settings-btn{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-dim);width:34px;height:34px;border-radius:9px;font-size:17px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;transition:.15s;flex:0 0 auto;}
+  .settings-btn:hover{color:var(--brass-lt);border-color:rgba(200,146,42,0.4);}
+  .bk-section{background:var(--ocean);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:12px;}
+  .bk-section h4{font-family:'Archivo',sans-serif;font-size:14px;color:var(--foam);margin:0 0 4px;}
+  .bk-section p{font-size:12.5px;color:var(--text-dim);line-height:1.5;margin:0 0 10px;}
+  `;
+  const s=document.createElement('style'); s.textContent=css; document.head.appendChild(s);
+})();
+
+function buildBackupOverlay(){
+  if(document.getElementById('backupOverlay')) return;
+  const html =
+  '<div class="log-panel">'+
+    '<div class="log-handle"></div>'+
+    '<div class="log-title">Backup &amp; Restore</div>'+
+    '<div class="log-subtitle">Your logbook is saved on this device only. Back it up to keep it safe — and to move it to another device, such as from your computer to your phone.</div>'+
+    '<div class="bk-section">'+
+      '<h4>Back up your logbook</h4>'+
+      '<p>Saves a small file to this device. Email it to yourself or keep it somewhere safe.</p>'+
+      '<button class="log-submit-btn" style="width:100%;" onclick="downloadBackup()">Download backup</button>'+
+    '</div>'+
+    '<div class="bk-section">'+
+      '<h4>Restore from a backup</h4>'+
+      '<p>Loads a backup file onto this device. This replaces the logbook currently here.</p>'+
+      '<button class="log-submit-btn" style="width:100%;background:var(--hull);border:1px solid rgba(255,255,255,0.2);" onclick="triggerRestore()">Restore from a backup</button>'+
+      '<input type="file" id="restoreFileInput" accept="application/json,.json" style="display:none;" onchange="restoreBackup(this)">'+
+    '</div>'+
+    '<button class="log-submit-btn" style="width:100%;margin-top:14px;background:var(--hull);border:1px solid rgba(255,255,255,0.2);" onclick="closeBackup()">Close</button>'+
+  '</div>';
+  const ov=document.createElement('div');
+  ov.className='log-overlay'; ov.id='backupOverlay';
+  ov.setAttribute('onclick','backupOverlayClick(event)');
+  ov.innerHTML=html;
+  document.body.appendChild(ov);
+}
+function openBackup(){ buildBackupOverlay(); document.getElementById('backupOverlay').classList.add('open'); }
+function closeBackup(){ const o=document.getElementById('backupOverlay'); if(o) o.classList.remove('open'); }
+function backupOverlayClick(e){ if(e.target && e.target.id==='backupOverlay') closeBackup(); }
+
+function collectBackup(){
+  const suffixes = ['_vessel','','_persist','_boatphoto','_photopos'];
+  const data = {};
+  suffixes.forEach(function(suf){
+    const k = STORAGE_KEY + suf;
+    const v = localStorage.getItem(k);
+    if (v !== null) data[k] = v;
+  });
+  return { app:'My Vessel Log', version:1, exportedAt:new Date().toISOString(), data:data };
+}
+
+function downloadBackup(){
+  try {
+    const backup = collectBackup();
+    const v = (typeof getVessel === 'function') ? getVessel() : null;
+    let base = (v && v.name ? v.name : 'my-vessel-log').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+    if (!base) base = 'my-vessel-log';
+    const day = new Date().toISOString().slice(0,10);
+    const blob = new Blob([JSON.stringify(backup)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = base + '-backup-' + day + '.json';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    showToast('Backup downloaded');
+  } catch(e){ showToast('Backup could not be created'); }
+}
+
+function triggerRestore(){ const i=document.getElementById('restoreFileInput'); if(i) i.click(); }
+
+function applyBackup(parsed){
+  Object.keys(localStorage).filter(function(k){ return k.indexOf(STORAGE_KEY) === 0; })
+    .forEach(function(k){ localStorage.removeItem(k); });
+  Object.keys(parsed.data).forEach(function(k){ localStorage.setItem(k, parsed.data[k]); });
+}
+
+function restoreBackup(input){
+  const file = input.files && input.files[0];
+  input.value = '';
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    let parsed;
+    try { parsed = JSON.parse(ev.target.result); }
+    catch(err){ showToast('That does not look like a backup file'); return; }
+    if(!parsed || parsed.app !== 'My Vessel Log' || !parsed.data){ showToast('That is not a My Vessel Log backup'); return; }
+    if(!confirm('Restore this backup? It will replace the logbook currently on this device.')) return;
+    try {
+      applyBackup(parsed);
+      showToast('Restored — reloading…');
+      setTimeout(function(){ try { location.reload(); } catch(e){} }, 700);
+    } catch(err){ showToast('Restore failed'); }
+  };
+  reader.readAsText(file);
 }
 
 // ═══════════════════════════════════════════════════════════════════
