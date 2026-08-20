@@ -682,7 +682,7 @@ input[type=date]::-webkit-inner-spin-button{display:none;-webkit-appearance:none
 </div><!-- .app -->
 
 <!-- FAB -->
-<button class="fab" onclick="openLogForm()">＋</button>
+<button class="fab" onclick="fabAction()">＋</button>
 
 <!-- Bottom nav -->
 <div class="bottom-nav">
@@ -1289,6 +1289,7 @@ function renderExport() {
 // INTERACTIONS
 // ═══════════════════════════════════════════════════════════════════
 function showTab(tab) {
+  window.currentTab = tab;
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -1304,6 +1305,12 @@ function showTab(tab) {
   if (tab === 'log') renderLog();
   if (tab === 'trips') renderTrips();
 }
+
+function fabAction(){
+  if (window.currentTab === 'trips') openTripForm();
+  else openLogForm();
+}
+window.currentTab = 'dashboard';
 
 function updateHours() {
   state.portHrs = parseInt(document.getElementById('portHrs').value) || 0;
