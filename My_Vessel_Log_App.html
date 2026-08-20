@@ -601,11 +601,23 @@ input[type=date]::-webkit-inner-spin-button{display:none;-webkit-appearance:none
     </div>
     <div id="addTaskForm" style="display:none; background:var(--hull); border:1px solid rgba(255,255,255,0.1); border-radius:var(--radius); padding:14px; margin-bottom:12px;">
       <div class="form-label">Task name *</div>
-      <input class="form-input" id="ntName" placeholder="e.g. Windlass service" style="margin-bottom:8px;">
-      <div class="form-label">Interval</div>
-      <input class="form-input" id="ntInterval" placeholder="e.g. annual, 2 yearly, 3 monthly" style="margin-bottom:8px;">
-      <div class="form-label">Next due date</div>
-      <input class="form-input" id="ntNextDate" type="date" style="margin-bottom:8px;">
+      <input class="form-input" id="ntName" placeholder="e.g. Windlass service" style="margin-bottom:10px;">
+      <div class="form-label">Schedule by</div>
+      <div class="engine-chips" style="margin-bottom:10px;">
+        <div class="engine-chip selected" id="ntTypeHours" onclick="setTaskType('hours')">Engine hours</div>
+        <div class="engine-chip" id="ntTypeDate" onclick="setTaskType('date')">Calendar date</div>
+      </div>
+      <div id="ntHoursFields">
+        <div class="form-label">Every … hours</div>
+        <input class="form-input" id="ntHrsInterval" type="number" min="1" placeholder="e.g. 50" style="margin-bottom:4px;">
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;line-height:1.4;">Counts down from your current engine hours, and moves as you log trips.</div>
+      </div>
+      <div id="ntDateFields" style="display:none;">
+        <div class="form-label">Interval</div>
+        <input class="form-input" id="ntInterval" placeholder="e.g. annual, 2 yearly, 3 monthly" style="margin-bottom:8px;">
+        <div class="form-label">Next due date</div>
+        <input class="form-input" id="ntNextDate" type="date" style="margin-bottom:10px;">
+      </div>
       <div class="form-label">Notes</div>
       <input class="form-input" id="ntNotes" placeholder="Optional reminder or details" style="margin-bottom:12px;">
       <div style="display:flex;gap:8px;">
@@ -820,6 +832,7 @@ function saveState() {
       inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock, notes: i.notes || '' })),
       userAddedParts: inventory.filter(i => i.userAdded),
       userAddedTasks: scheduledTasks.filter(t => t.userAdded),
+      userAddedEngineTasks: engineTasks.filter(t => t.userAdded),
       scheduledTaskOverrides: scheduledTasks.filter(t => !t.userAdded).map(t => ({ name: t.name, lastDate: t.lastDate, nextDate: t.nextDate })),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
@@ -833,6 +846,7 @@ function saveState() {
       engineTaskOverrides: toSave.engineTaskOverrides,
       scheduledTaskOverrides: toSave.scheduledTaskOverrides,
       userAddedTasks: toSave.userAddedTasks,
+      userAddedEngineTasks: toSave.userAddedEngineTasks,
     };
     localStorage.setItem(STORAGE_KEY + '_persist', JSON.stringify(persistent));
   } catch(e) { console.warn('Save failed:', e); }
@@ -850,6 +864,7 @@ function loadState() {
       if (pd.trips) state.trips = pd.trips;
       if (pd.inventoryStock) pd.inventoryStock.forEach(s => { const item = inventory.find(i => i.id === s.id); if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; } });
       if (pd.userAddedParts) pd.userAddedParts.forEach(p => { if (!inventory.find(i => i.id === p.id)) inventory.push(p); });
+      if (pd.userAddedEngineTasks) pd.userAddedEngineTasks.forEach(t => { if (!engineTasks.find(e => e.name === t.name)) engineTasks.push(t); });
       if (pd.engineTaskOverrides) pd.engineTaskOverrides.forEach(override => { const task = engineTasks.find(t => t.name === override.name); if (task) { task.port.lastDate=override.port.lastDate; task.port.lastHrs=override.port.lastHrs; task.port.nextHrs=override.port.nextHrs; task.port.nextDate=override.port.nextDate; task.stbd.lastDate=override.stbd.lastDate; task.stbd.lastHrs=override.stbd.lastHrs; task.stbd.nextHrs=override.stbd.nextHrs; task.stbd.nextDate=override.stbd.nextDate; } });
       if (pd.scheduledTaskOverrides) pd.scheduledTaskOverrides.forEach(override => { const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded); if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; } });
       if (pd.userAddedTasks) pd.userAddedTasks.forEach(t => { if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t); });
@@ -864,6 +879,7 @@ function loadState() {
     if (data.stbdHrs) { state.stbdHrs = data.stbdHrs; document.getElementById('stbdHrs').value = data.stbdHrs; }
     if (data.loggedTasks) state.loggedTasks = data.loggedTasks;
     if (data.trips) state.trips = data.trips;
+    if (data.userAddedEngineTasks) data.userAddedEngineTasks.forEach(t => { if (!engineTasks.find(e => e.name === t.name)) engineTasks.push(t); });
     if (data.engineTaskOverrides) {
       data.engineTaskOverrides.forEach(override => {
         const task = engineTasks.find(t => t.name === override.name);
@@ -1546,24 +1562,57 @@ function toggleAddTask() {
   f.style.display = f.style.display === 'none' ? 'block' : 'none';
 }
 
+function setTaskType(type){
+  window.ntType = type;
+  const h=document.getElementById('ntTypeHours'), dt=document.getElementById('ntTypeDate');
+  const hf=document.getElementById('ntHoursFields'), df=document.getElementById('ntDateFields');
+  if(h) h.classList.toggle('selected', type==='hours');
+  if(dt) dt.classList.toggle('selected', type==='date');
+  if(hf) hf.style.display = type==='hours' ? 'block' : 'none';
+  if(df) df.style.display = type==='date' ? 'block' : 'none';
+}
+window.ntType = 'hours';
+
 function addNewTask() {
   const name = document.getElementById('ntName').value.trim();
   if (!name) { showToast('Please enter a task name'); return; }
-  const rawDate = document.getElementById('ntNextDate').value;
-  const nextDate = rawDate ? formatDate(new Date(rawDate)) : null;
-  scheduledTasks.push({
-    name,
-    lastDate:  '—',
-    nextDate,
-    interval:  document.getElementById('ntInterval').value.trim() || 'annual',
-    notes:     document.getElementById('ntNotes').value.trim() || '',
-    userAdded: true,
-  });
-  ['ntName','ntInterval','ntNextDate','ntNotes'].forEach(id => document.getElementById(id).value = '');
+  const notes = document.getElementById('ntNotes').value.trim() || '';
+  const type = window.ntType || 'hours';
+
+  if (type === 'hours') {
+    const n = parseInt(document.getElementById('ntHrsInterval').value, 10);
+    if (!n || n <= 0) { showToast('Enter how many hours between services'); return; }
+    if (engineTasks.find(t => t.name === name)) { showToast('A task with that name already exists'); return; }
+    engineTasks.push({
+      name,
+      freq: n + ' hrs',
+      notes,
+      userAdded: true,
+      port: { lastDate:'—', lastHrs:null, nextHrs:(state.portHrs||0)+n, nextDate:null },
+      stbd: { lastDate:'—', lastHrs:null, nextHrs:(state.stbdHrs||0)+n, nextDate:null },
+    });
+    showToast('✓ Hours-based task added');
+  } else {
+    const rawDate = document.getElementById('ntNextDate').value;
+    const nextDate = rawDate ? formatDate(new Date(rawDate)) : null;
+    if (scheduledTasks.find(t => t.name === name && t.userAdded)) { showToast('A task with that name already exists'); return; }
+    scheduledTasks.push({
+      name,
+      lastDate:  '—',
+      nextDate,
+      interval:  document.getElementById('ntInterval').value.trim() || 'annual',
+      notes,
+      userAdded: true,
+    });
+    showToast('✓ Calendar task added');
+  }
+
+  ['ntName','ntHrsInterval','ntInterval','ntNextDate','ntNotes'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  setTaskType('hours');
   toggleAddTask();
   saveState();
   renderDashboard();
-  showToast('✓ Task added');
+  renderEngineList();
 }
 
 function handleBoatPhoto(event) {
