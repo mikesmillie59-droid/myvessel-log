@@ -1,0 +1,2321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a1628">
+<title>Vessel Maintenance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ocean:    #0a1628;
+    --deep:     #0d1f3c;
+    --hull:     #122347;
+    --steel:    #1a3560;
+    --nav:      #1e4080;
+    --brass:    #c8922a;
+    --brass-lt: #e8b84b;
+    --wake:     #4db8d4;
+    --wake-lt:  #7dd4e8;
+    --foam:     #e8f4f8;
+    --red:      #e05252;
+    --red-bg:   rgba(224,82,82,0.12);
+    --amber:    #e09a2a;
+    --amber-bg: rgba(224,154,42,0.12);
+    --green:    #3dba7e;
+    --green-bg: rgba(61,186,126,0.12);
+    --grey-bg:  rgba(255,255,255,0.05);
+    --text:     #e8f4f8;
+    --text-dim: #8aafc4;
+    --radius:   12px;
+    --radius-lg:20px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Archivo', sans-serif;
+    background: var(--ocean);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(30,64,128,0.4) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(13,31,60,0.6) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding-bottom: 90px; }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(180deg, var(--deep) 0%, rgba(13,31,60,0.95) 100%);
+    border-bottom: 1px solid rgba(200,146,42,0.3);
+    padding: 16px 20px 14px;
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+  .header-top { display: flex; align-items: center; justify-content: space-between; }
+  .vessel-name {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 20px; letter-spacing: 0.04em;
+    color: var(--brass-lt);
+  }
+  .vessel-name span { color: var(--wake); }
+  .header-date { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+  .boat-photo-wrap { width: 100%; margin-top: 12px; border-radius: 10px; overflow: hidden; position: relative; aspect-ratio: 16/5; background: var(--hull); border: 1px solid rgba(61,191,184,0.15); cursor: pointer; }
+  .boat-photo-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .boat-photo-placeholder { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 100%; color: var(--text-dim); font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+  .boat-photo-overlay { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.8); font-size: 10px; padding: 3px 8px; border-radius: 20px; cursor: pointer; }
+  .boat-photo-controls { position: absolute; bottom: 8px; right: 8px; display: none; flex-direction: column; gap: 4px; }
+  .boat-photo-wrap:hover .boat-photo-controls,
+  .boat-photo-wrap.show-controls .boat-photo-controls { display: flex; }
+  .photo-pos-btn { background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.25); color: rgba(255,255,255,0.85); font-size: 10px; padding: 3px 8px; border-radius: 12px; cursor: pointer; white-space: nowrap; text-align: center; }
+  .photo-pos-btn.active { background: rgba(61,191,184,0.4); border-color: rgba(61,191,184,0.6); }
+
+  .hours-bar { display: flex; gap: 10px; margin-top: 12px; }
+  .hours-pill {
+    flex: 1; background: var(--hull);
+    border: 1px solid rgba(77,184,212,0.2);
+    border-radius: 8px; padding: 7px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .hours-pill-label { font-size: 10px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.08em; }
+  .hours-pill input {
+    background: none; border: none; outline: none;
+    font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 500;
+    color: var(--wake); width: 60px; text-align: right;
+  }
+
+  /* ── Nav tabs ── */
+  .nav-tabs {
+    display: flex; background: var(--deep);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 1; min-width: 76px; padding: 12px 6px;
+    text-align: center; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--text-dim); cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s; white-space: nowrap;
+  }
+  .tab.active { color: var(--brass-lt); border-bottom-color: var(--brass); }
+  .tab-icon { font-size: 16px; display: block; margin-bottom: 2px; }
+
+  /* ── Sections ── */
+  .section { display: none; padding: 16px; }
+  .section.active { display: block; }
+
+  /* ── Alert banner ── */
+  .alert-banner {
+    background: var(--red-bg);
+    border: 1px solid rgba(224,82,82,0.3);
+    border-radius: var(--radius); padding: 12px 14px;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 10px;
+    animation: slideIn 0.3s ease;
+  }
+  .alert-banner.amber { background: var(--amber-bg); border-color: rgba(224,154,42,0.3); }
+  .alert-icon { font-size: 18px; flex-shrink: 0; }
+  .alert-text { font-size: 13px; line-height: 1.4; }
+  .alert-text strong { display: block; font-size: 12px; color: var(--text-dim); font-weight: 500; margin-bottom: 1px; }
+
+  /* ── Section header ── */
+  .sec-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; margin-top: 4px;
+  }
+  .sec-title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .sec-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; background: var(--hull);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px; padding: 2px 8px; color: var(--text-dim);
+  }
+  .add-btn { background: rgba(200,146,42,0.15); border: 1px solid rgba(200,146,42,0.4); color: #E8B84B; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; padding: 5px 14px; border-radius: 20px; cursor: pointer; transition: background 0.2s; font-family: 'Archivo Black', sans-serif; }
+  .add-btn:hover { background: rgba(200,146,42,0.28); }
+
+  /* ── Task card ── */
+  .task-card {
+    background: var(--hull);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: var(--radius); margin-bottom: 8px;
+    overflow: hidden; cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+    animation: slideIn 0.25s ease both;
+  }
+  .task-card:active { transform: scale(0.98); }
+  .task-card.overdue  { border-left: 3px solid var(--red);   background: linear-gradient(90deg, rgba(224,82,82,0.08) 0%, var(--hull) 40%); }
+  .task-card.due-soon { border-left: 3px solid var(--amber); background: linear-gradient(90deg, rgba(224,154,42,0.08) 0%, var(--hull) 40%); }
+  .task-card.ok       { border-left: 3px solid var(--green); }
+  .task-card.no-sched { border-left: 3px solid rgba(255,255,255,0.15); }
+
+  .task-main { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+  .task-check {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.2);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; font-size: 11px;
+  }
+  .task-card.overdue  .task-check { border-color: var(--red); }
+  .task-card.due-soon .task-check { border-color: var(--amber); }
+  .task-card.ok       .task-check { border-color: rgba(61,186,126,0.4); }
+  .task-card.logged   .task-check { background: var(--green); border-color: var(--green); color: white; }
+
+  .task-info { flex: 1; min-width: 0; }
+  .task-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .task-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+
+  .task-status {
+    font-size: 11px; font-family: 'JetBrains Mono', monospace;
+    padding: 4px 8px; border-radius: 6px; font-weight: 500; flex-shrink: 0; text-align: right; max-width: 90px;
+  }
+  .task-card.overdue  .task-status { background: var(--red-bg);   color: var(--red); }
+  .task-card.due-soon .task-status { background: var(--amber-bg); color: var(--amber); }
+  .task-card.ok       .task-status { background: var(--green-bg); color: var(--green); }
+  .task-card.no-sched .task-status { background: rgba(255,255,255,0.05); color: var(--text-dim); }
+
+  /* ── Combined engine view ── */
+  .engines-header {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; margin-bottom: 14px;
+  }
+  .engine-header-pill {
+    border-radius: 10px; padding: 10px 14px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .engine-header-pill.port { background: rgba(77,184,212,0.1); border: 1px solid rgba(77,184,212,0.25); }
+  .engine-header-pill.stbd { background: rgba(200,146,42,0.1); border: 1px solid rgba(200,146,42,0.25); }
+  .engine-pill-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; font-family: 'JetBrains Mono', monospace; }
+  .engine-header-pill.port .engine-pill-label { color: var(--wake); }
+  .engine-header-pill.stbd .engine-pill-label { color: var(--brass-lt); }
+  .engine-pill-val { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 500; color: var(--text); }
+  .engine-pill-sub { font-size: 10px; color: var(--text-dim); }
+
+  /* Combined engine row card */
+  .eng-row-card {
+    background: var(--hull);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: var(--radius); margin-bottom: 8px;
+    overflow: hidden; animation: slideIn 0.25s ease both;
+  }
+  .eng-row-name {
+    padding: 9px 14px 6px;
+    font-size: 13px; font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer;
+  }
+  .eng-row-name:active { background: rgba(255,255,255,0.03); }
+  .eng-row-freq { font-size: 10px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-weight: 400; }
+  .eng-row-cols {
+    display: grid; grid-template-columns: 1fr 1fr;
+  }
+  .eng-col {
+    padding: 8px 12px;
+  }
+  .eng-col.port { border-right: 1px solid rgba(255,255,255,0.06); }
+  .eng-col-header {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+    font-family: 'JetBrains Mono', monospace; margin-bottom: 4px;
+  }
+  .eng-col.port .eng-col-header { color: var(--wake); }
+  .eng-col.stbd .eng-col-header { color: var(--brass-lt); }
+  .eng-status-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+    padding: 3px 8px; border-radius: 6px; margin-bottom: 3px;
+  }
+  .eng-status-pill.overdue  { background: var(--red-bg);   color: var(--red); }
+  .eng-status-pill.due-soon { background: var(--amber-bg); color: var(--amber); }
+  .eng-status-pill.ok       { background: var(--green-bg); color: var(--green); }
+  .eng-status-pill.no-sched { background: rgba(255,255,255,0.05); color: var(--text-dim); }
+  .eng-col-detail { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+  .eng-row-note {
+    padding: 5px 14px 8px;
+    font-size: 11px; color: var(--text-dim);
+    border-top: 1px solid rgba(255,255,255,0.04);
+    font-style: italic;
+  }
+  .eng-row-card.overdue-any  { border-left: 3px solid var(--red); }
+  .eng-row-card.due-soon-any { border-left: 3px solid var(--amber); }
+  .eng-row-card.ok-all       { border-left: 3px solid var(--green); }
+  .eng-row-card.no-sched-all { border-left: 3px solid rgba(255,255,255,0.15); }
+
+  /* Log entry styles */
+  .log-entry {
+    background: var(--hull); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px;
+    animation: slideIn 0.25s ease;
+  }
+  .log-entry-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+  .log-entry-task { font-size: 14px; font-weight: 600; }
+  .log-entry-date { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+  .log-entry-meta { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+  .log-entry-tag {
+    display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+    padding: 2px 7px; border-radius: 4px; margin-right: 4px; margin-top: 4px;
+  }
+  .tag-port  { background: rgba(77,184,212,0.15);  color: var(--wake); }
+  .tag-stbd  { background: rgba(200,146,42,0.15);  color: var(--brass-lt); }
+  .tag-gen   { background: rgba(61,186,126,0.15);  color: var(--green); }
+
+  /* ── Export ── */
+  .export-box {
+    background: var(--hull); border: 1px solid rgba(200,146,42,0.25);
+    border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px;
+  }
+  .export-title { font-family: 'Archivo Black', sans-serif; font-size: 14px; color: var(--brass-lt); margin-bottom: 6px; }
+  .export-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; line-height: 1.5; }
+  .export-text {
+    background: var(--ocean); border: 1px solid rgba(77,184,212,0.2);
+    border-radius: 10px; padding: 12px; font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; line-height: 1.7; color: var(--wake-lt); white-space: pre-wrap;
+    word-break: break-word; min-height: 60px;
+  }
+  .btn-copy {
+    width: 100%; padding: 13px;
+    background: var(--steel); border: 1px solid rgba(77,184,212,0.3);
+    border-radius: var(--radius); color: var(--wake);
+    font-family: 'Archivo Black', sans-serif; font-size: 13px; letter-spacing: 0.05em;
+    cursor: pointer; margin-top: 10px; transition: background 0.2s;
+  }
+  .btn-copy:active { background: var(--nav); }
+  .btn-copy.copied { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+
+  /* ── Inventory ── */
+  .inv-card {
+    background: var(--hull); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px;
+  }
+  .inv-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .inv-name { font-size: 14px; font-weight: 600; }
+  .inv-stock {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    padding: 3px 9px; border-radius: 6px;
+  }
+  .inv-stock.low  { background: var(--red-bg);   color: var(--red); }
+  .inv-stock.ok   { background: var(--green-bg); color: var(--green); }
+  .inv-stock.none { background: var(--amber-bg); color: var(--amber); }
+  .inv-meta { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+  .inv-stock-controls { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .inv-adj-btn { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: var(--text); font-size: 16px; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; flex-shrink: 0; }
+  .inv-adj-btn:hover { background: rgba(255,255,255,0.15); }
+  .inv-adj-btn.minus { color: var(--red); border-color: rgba(224,75,74,0.3); }
+  .inv-adj-btn.plus  { color: var(--green); border-color: rgba(46,125,82,0.3); }
+  .inv-qty-display { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; min-width: 32px; text-align: center; color: var(--text); }
+  .inv-action-btn { background: none; border: none; font-size: 13px; cursor: pointer; padding: 4px 8px; border-radius: 6px; color: var(--text-dim); transition: background 0.15s; }
+  .inv-action-btn:hover { background: rgba(255,255,255,0.08); }
+  .inv-action-btn.delete { color: var(--red); }
+  .inv-edit-form { margin-top: 10px; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 12px; display: none; }
+  .inv-edit-form.open { display: block; }
+  .inv-edit-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .inv-edit-label { font-size: 11px; color: var(--text-dim); min-width: 72px; }
+  .inv-edit-input { flex: 1; background: var(--deep); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; color: var(--text); font-size: 13px; padding: 5px 8px; }
+  .inv-cat {
+    display: inline-block; font-size: 10px; letter-spacing: 0.05em;
+    background: var(--steel); color: var(--wake-lt); padding: 2px 7px;
+    border-radius: 4px; margin-bottom: 5px; font-weight: 600;
+  }
+
+  /* ── Bottom nav ── */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(13,31,60,0.97); border-top: 1px solid rgba(200,146,42,0.2);
+    backdrop-filter: blur(12px);
+    display: flex; padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+    max-width: 480px; margin: 0 auto;
+  }
+  @media (min-width: 480px) {
+    .bottom-nav { left: 50%; transform: translateX(-50%); width: 480px; }
+  }
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 3px; cursor: pointer; padding: 4px 0;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+    color: var(--text-dim); transition: color 0.2s;
+  }
+  .nav-item.active { color: var(--brass-lt); }
+  .nav-icon { font-size: 20px; }
+  .nav-item.active .nav-icon { filter: drop-shadow(0 0 6px rgba(232,184,75,0.5)); }
+
+  /* FAB */
+  .fab {
+    position: fixed; bottom: calc(72px + env(safe-area-inset-bottom)); right: 20px;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--brass) 0%, var(--brass-lt) 100%);
+    border: none; cursor: pointer; z-index: 99;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; color: var(--ocean);
+    box-shadow: 0 4px 20px rgba(200,146,42,0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .fab:active { transform: scale(0.92); box-shadow: 0 2px 10px rgba(200,146,42,0.3); }
+
+  /* ── Log form ── */
+  .log-overlay {
+    position: fixed; inset: 0; background: rgba(10,22,40,0.85);
+    z-index: 200; display: none; align-items: flex-end;
+    backdrop-filter: blur(4px);
+  }
+  .log-overlay.open { display: flex; }
+  .log-panel {
+    width: 100%; max-width: 480px; margin: 0 auto;
+    background: var(--deep);
+    border-top: 1px solid rgba(200,146,42,0.3);
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px 40px;
+    animation: slideUp 0.3s cubic-bezier(0.34,1.2,0.64,1);
+    max-height: 90vh; overflow-y: auto;
+  }
+  .log-handle { width: 36px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; margin: 0 auto 18px; }
+  .log-title { font-family: 'Archivo Black', sans-serif; font-size: 16px; color: var(--brass-lt); margin-bottom: 4px; }
+  .log-subtitle { font-size: 12px; color: var(--text-dim); margin-bottom: 18px; }
+
+  .form-row { position: relative; margin-bottom: 14px; }
+  .form-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; display: block; }
+  .form-input {
+    width: 100%; background: var(--hull); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 11px 14px; color: var(--text);
+    font-family: 'Archivo', sans-serif; font-size: 14px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: var(--wake); }
+  .form-input::placeholder { color: var(--text-dim); }
+  textarea.form-input { resize: none; height: 72px; line-height: 1.5; }
+  .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+
+  .engine-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .engine-chip {
+    padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15);
+    font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    color: var(--text-dim);
+  }
+  .engine-chip.selected { background: var(--steel); border-color: var(--wake); color: var(--wake); }
+
+  .btn-log {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--brass) 0%, var(--brass-lt) 100%);
+    border: none; border-radius: var(--radius); color: var(--ocean);
+    font-family: 'Archivo Black', sans-serif; font-size: 15px; letter-spacing: 0.04em;
+    cursor: pointer; transition: opacity 0.2s; margin-top: 6px;
+  }
+  .btn-log:active { opacity: 0.85; }
+  .btn-cancel {
+    width: 100%; padding: 12px; background: none;
+    border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius);
+    color: var(--text-dim); font-size: 14px; cursor: pointer; margin-top: 8px;
+  }
+
+  /* ── Photo notes ── */
+  .photo-upload-area {
+    border: 2px dashed rgba(77,184,212,0.3); border-radius: var(--radius);
+    padding: 14px; text-align: center; cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: rgba(77,184,212,0.03); position: relative;
+  }
+  .photo-upload-area:active { border-color: var(--wake); background: rgba(77,184,212,0.08); }
+  .photo-upload-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .photo-upload-icon { font-size: 24px; margin-bottom: 4px; }
+  .photo-upload-label { font-size: 12px; color: var(--text-dim); }
+  .photo-upload-label span { color: var(--wake); font-weight: 600; }
+  .photo-previews { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .photo-thumb-wrap {
+    position: relative; width: 72px; height: 72px; border-radius: 8px;
+    overflow: hidden; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1);
+    animation: slideIn 0.2s ease;
+  }
+  .photo-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
+  .photo-thumb-del {
+    position: absolute; top: 3px; right: 3px; width: 18px; height: 18px;
+    border-radius: 50%; background: rgba(10,22,40,0.85); border: none; color: white;
+    font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .log-photo-strip { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .log-photo-thumb {
+    width: 60px; height: 60px; border-radius: 6px; object-fit: cover;
+    border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: transform 0.15s;
+  }
+  .log-photo-thumb:active { transform: scale(0.95); }
+  .photo-count-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--wake); background: rgba(77,184,212,0.12);
+    border-radius: 6px; padding: 2px 7px; margin-top: 6px;
+  }
+
+  /* ── Photo viewer ── */
+  .photo-viewer {
+    position: fixed; inset: 0; background: rgba(5,10,20,0.97);
+    z-index: 500; display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .photo-viewer.open { display: flex; }
+  .photo-viewer-img { max-width: 100%; max-height: calc(100vh - 120px); border-radius: 8px; object-fit: contain; animation: slideIn 0.2s ease; }
+  .photo-viewer-bar {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(180deg, rgba(5,10,20,0.9) 0%, transparent 100%);
+  }
+  .photo-viewer-title { font-size: 13px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+  .photo-viewer-close {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(255,255,255,0.1); border: none; color: white;
+    font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .photo-viewer-nav { position: absolute; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; gap: 12px; }
+  .photo-nav-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: background 0.2s; cursor: pointer; }
+  .photo-nav-dot.active { background: var(--wake); }
+  .photo-viewer-arrows { position: absolute; top: 50%; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 12px; transform: translateY(-50%); pointer-events: none; }
+  .photo-arrow { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 18px; cursor: pointer; pointer-events: all; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+
+  /* ── Stock adjustment ── */
+  .stock-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--hull); border: 1px solid rgba(77,184,212,0.2);
+    border-radius: var(--radius); padding: 11px 14px; cursor: pointer; transition: background 0.2s;
+  }
+  .stock-toggle:active { background: var(--steel); }
+  .stock-toggle-label { font-size: 13px; color: var(--text-dim); }
+  .stock-toggle-label span { color: var(--wake); font-weight: 600; }
+  .stock-toggle-arrow { font-size: 12px; color: var(--text-dim); transition: transform 0.2s; }
+  .stock-toggle-arrow.open { transform: rotate(180deg); }
+  .stock-panel { display: none; margin-top: 8px; background: rgba(77,184,212,0.05); border: 1px solid rgba(77,184,212,0.15); border-radius: var(--radius); padding: 12px; }
+  .stock-panel.open { display: block; animation: slideIn 0.2s ease; }
+  .stock-part-select { width: 100%; background: var(--hull); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 11px 14px; color: var(--text); font-family: 'Archivo', sans-serif; font-size: 14px; outline: none; margin-bottom: 10px; -webkit-appearance: none; }
+  .stock-part-select option { background: var(--deep); }
+  .stock-adj-row { display: flex; align-items: center; gap: 10px; }
+  .stock-adj-btn { width: 40px; height: 40px; border-radius: 50%; border: none; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: transform 0.1s; font-weight: 600; }
+  .stock-adj-btn:active { transform: scale(0.9); }
+  .stock-adj-btn.minus { background: var(--red-bg); color: var(--red); border: 1px solid rgba(224,82,82,0.3); }
+  .stock-adj-btn.plus  { background: var(--green-bg); color: var(--green); border: 1px solid rgba(61,186,126,0.3); }
+  .stock-adj-display { flex: 1; text-align: center; background: var(--hull); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px; }
+  .stock-adj-current { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 600; color: var(--wake); }
+  .stock-adj-label { font-size: 10px; color: var(--text-dim); margin-top: 2px; letter-spacing: 0.05em; }
+  .stock-adj-change { font-size: 11px; font-family: 'JetBrains Mono', monospace; margin-top: 8px; text-align: center; min-height: 16px; }
+  .stock-adj-change.adding { color: var(--green); }
+  .stock-adj-change.removing { color: var(--red); }
+
+  /* Toast */
+  .toast {
+    position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-20px);
+    background: var(--green); color: var(--ocean);
+    font-family: 'Archivo Black', sans-serif; font-size: 13px;
+    padding: 10px 20px; border-radius: 20px;
+    opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 300; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Misc */
+  .divider { height: 1px; background: rgba(255,255,255,0.06); margin: 14px 0; }
+  .empty { text-align: center; padding: 40px 20px; color: var(--text-dim); }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+  .empty-text { font-size: 14px; line-height: 1.6; }
+
+  @keyframes slideIn  { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes slideUp  { from { transform: translateY(100%); } to { transform: translateY(0); } }
+</style>
+<style>
+/* ── self-service UI tweaks ── */
+.log-submit-btn{background:linear-gradient(135deg,var(--brass) 0%,var(--brass-lt) 100%);color:var(--ocean);border:none;border-radius:12px;padding:13px 18px;font-family:'Archivo Black',sans-serif;font-size:14px;letter-spacing:0.02em;cursor:pointer;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 14px rgba(200,146,42,0.3);}
+.log-submit-btn:active{transform:scale(0.98);}
+.log-submit-btn[style*="var(--hull)"]{color:var(--text);box-shadow:none;}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;-moz-appearance:none;appearance:none;margin:0;}
+input[type=number]{-moz-appearance:textfield;appearance:textfield;}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:0.9;cursor:pointer;}
+input[type=date]::-webkit-inner-spin-button{display:none;-webkit-appearance:none;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="vessel-name">⚓ VESSEL <span>LOG</span></div>
+        <div class="header-date" id="headerDate">—</div>
+      </div>
+    </div>
+    <div class="boat-photo-wrap" onclick="document.getElementById('boatPhotoInput').click()" id="boatPhotoWrap">
+      <div class="boat-photo-placeholder" id="boatPhotoPlaceholder">📷 Tap to add your boat photo</div>
+      <img id="boatPhotoImg" style="display:none;" alt="Your vessel">
+      <div class="boat-photo-overlay" id="boatPhotoOverlay" style="display:none;" onclick="event.stopPropagation();document.getElementById('boatPhotoInput').click()">Change photo</div>
+      <div class="boat-photo-controls" id="boatPhotoControls">
+        <div class="photo-pos-btn" id="posTop"    onclick="event.stopPropagation();setPhotoPos('top')">▲ Top</div>
+        <div class="photo-pos-btn" id="posMid"    onclick="event.stopPropagation();setPhotoPos('center')">● Mid</div>
+        <div class="photo-pos-btn" id="posBottom" onclick="event.stopPropagation();setPhotoPos('bottom')">▼ Bottom</div>
+      </div>
+    </div>
+    <input type="file" id="boatPhotoInput" accept="image/*" style="display:none;" onchange="handleBoatPhoto(event)">
+    <div class="hours-bar">
+      <div class="hours-pill">
+        <span class="hours-pill-label">PORT HRS</span>
+        <input type="number" id="portHrs" value="0" min="0" max="9999" onchange="updateHours()">
+      </div>
+      <div class="hours-pill">
+        <span class="hours-pill-label">STBD HRS</span>
+        <input type="number" id="stbdHrs" value="0" min="0" max="9999" onchange="updateHours()">
+      </div>
+    </div>
+  </div>
+
+  <div style="background:rgba(200,146,42,0.15);border-bottom:1px solid rgba(200,146,42,0.3);padding:8px 16px;text-align:center;font-size:12px;color:#E8B84B;font-family:'JetBrains Mono',monospace;">
+    ⚓ DEMO — This is a template preview. Customer data will be pre-loaded.
+  </div>
+  <!-- Nav tabs -->
+  <div class="nav-tabs">
+    <div class="tab active" onclick="showTab('dashboard')"><span class="tab-icon">📊</span>Dash</div>
+    <div class="tab" onclick="showTab('engine')"><span class="tab-icon">⚙️</span>Engines</div>
+    <div class="tab" onclick="showTab('log')"><span class="tab-icon">📋</span>Log</div>
+    <div class="tab" onclick="showTab('trips')"><span class="tab-icon">🧭</span>Trips</div>
+    <div class="tab" onclick="showTab('inventory')"><span class="tab-icon">📦</span>Parts</div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="section active" id="tab-dashboard">
+    <div id="dashAlerts"></div>
+    <div class="sec-header">
+      <div class="sec-title">Engine Tasks</div>
+      <div class="sec-badge" id="engBadge">—</div>
+    </div>
+    <div id="dashEngineTasks"></div>
+    <div class="divider"></div>
+    <div class="sec-header">
+      <div class="sec-title">Scheduled Maintenance</div>
+      <button class="add-btn" onclick="toggleAddTask()">＋ Add Task</button>
+    </div>
+    <div id="addTaskForm" style="display:none; background:var(--hull); border:1px solid rgba(255,255,255,0.1); border-radius:var(--radius); padding:14px; margin-bottom:12px;">
+      <div class="form-label">Task name *</div>
+      <input class="form-input" id="ntName" placeholder="e.g. Windlass service" style="margin-bottom:8px;">
+      <div class="form-label">Interval</div>
+      <input class="form-input" id="ntInterval" placeholder="e.g. annual, 2 yearly, 3 monthly" style="margin-bottom:8px;">
+      <div class="form-label">Next due date</div>
+      <input class="form-input" id="ntNextDate" type="date" style="margin-bottom:8px;">
+      <div class="form-label">Notes</div>
+      <input class="form-input" id="ntNotes" placeholder="Optional reminder or details" style="margin-bottom:12px;">
+      <div style="display:flex;gap:8px;">
+        <button class="log-submit-btn" onclick="addNewTask()" style="flex:1;">Save Task</button>
+        <button class="log-submit-btn" onclick="toggleAddTask()" style="flex:1;background:var(--hull);border:1px solid rgba(255,255,255,0.2);">Cancel</button>
+      </div>
+    </div>
+    <div id="dashScheduled"></div>
+  </div>
+
+  <!-- ENGINES — combined side-by-side -->
+  <div class="section" id="tab-engine">
+    <div class="engines-header">
+      <div class="engine-header-pill port">
+        <div class="engine-pill-label">⬅ PORT ENGINE</div>
+        <div class="engine-pill-val" id="portHrsDisplay">349 hrs</div>
+        <div class="engine-pill-sub">Current hours</div>
+      </div>
+      <div class="engine-header-pill stbd">
+        <div class="engine-pill-label">STBD ENGINE ➡</div>
+        <div class="engine-pill-val" id="stbdHrsDisplay">354 hrs</div>
+        <div class="engine-pill-sub">Current hours</div>
+      </div>
+    </div>
+    <div id="engineTaskList"></div>
+  </div>
+
+  <!-- LOG -->
+  <div class="section" id="tab-log">
+    <div class="sec-header">
+      <div class="sec-title">Maintenance Log</div>
+      <div class="sec-badge" id="logBadge">0 entries</div>
+    </div>
+    <div id="logList"></div>
+  </div>
+
+  <!-- TRIPS -->
+  <div class="section" id="tab-trips">
+    <div class="sec-header">
+      <div class="sec-title">Trip Log</div>
+      <button class="add-btn" onclick="openTripForm()">＋ Log a Trip</button>
+    </div>
+    <div id="tripSummary"></div>
+    <div id="tripList"></div>
+  </div>
+
+  <!-- INVENTORY -->
+  <div class="section" id="tab-inventory">
+    <div class="sec-header">
+      <div class="sec-title">Parts Inventory</div>
+      <button class="add-btn" onclick="toggleAddPart()">＋ Add Part</button>
+    </div>
+    <div id="addPartForm" style="display:none; background:var(--hull); border:1px solid rgba(255,255,255,0.1); border-radius:var(--radius); padding:14px; margin-bottom:12px;">
+      <div class="form-label">Part name *</div>
+      <input class="form-input" id="npName" placeholder="e.g. Fuel Filter" style="margin-bottom:8px;">
+      <div class="form-label">Category</div>
+      <input class="form-input" id="npCat" placeholder="e.g. Fuel, Oil, Cooling" style="margin-bottom:8px;">
+      <div class="form-label">Part number</div>
+      <input class="form-input" id="npPartNum" placeholder="e.g. FF5091" style="margin-bottom:8px;">
+      <div class="form-label">Supplier</div>
+      <input class="form-input" id="npVendor" placeholder="e.g. Fleetguard" style="margin-bottom:8px;">
+      <div class="form-label">Qty in stock</div>
+      <input class="form-input" id="npStock" type="number" min="0" placeholder="0" style="margin-bottom:8px;">
+      <div class="form-label">Notes / alternate part numbers</div>
+      <input class="form-input" id="npNotes" placeholder="e.g. Also fits: FS1212" style="margin-bottom:12px;">
+      <div style="display:flex;gap:8px;">
+        <button class="log-submit-btn" onclick="addNewPart()" style="flex:1;">Save Part</button>
+        <button class="log-submit-btn" onclick="toggleAddPart()" style="flex:1;background:var(--hull);border:1px solid rgba(255,255,255,0.2);">Cancel</button>
+      </div>
+    </div>
+    <div id="inventoryList"></div>
+  </div>
+
+</div><!-- .app -->
+
+<!-- FAB -->
+<button class="fab" onclick="openLogForm()">＋</button>
+
+<!-- Bottom nav -->
+<div class="bottom-nav">
+  <div class="nav-item active" onclick="showTab('dashboard')"><span class="nav-icon">📊</span>DASH</div>
+  <div class="nav-item" onclick="showTab('engine')"><span class="nav-icon">⚙️</span>ENGINES</div>
+  <div class="nav-item" onclick="showTab('log')"><span class="nav-icon">📋</span>LOG</div>
+  <div class="nav-item" onclick="showTab('trips')"><span class="nav-icon">🧭</span>TRIPS</div>
+  <div class="nav-item" onclick="showTab('inventory')"><span class="nav-icon">📦</span>PARTS</div>
+</div>
+
+<!-- Log form overlay -->
+<div class="log-overlay" id="logOverlay" onclick="overlayClick(event)">
+  <div class="log-panel" id="logPanel">
+    <div class="log-handle"></div>
+    <div class="log-title" id="logFormTitle">Log Maintenance Task</div>
+    <div class="log-subtitle">Record completed work for spreadsheet update</div>
+
+    <div class="form-row">
+      <label class="form-label">Task Name</label>
+      <input class="form-input" id="fTask" placeholder="e.g. Oil and Filters or type your own" autocomplete="off" oninput="filterTaskList(this.value)" onfocus="showTaskDropdown()" onblur="setTimeout(hideTaskDropdown,200)">
+      <div id="taskDropdown" style="display:none;position:absolute;z-index:999;left:0;right:0;background:#0D2135;border:1px solid rgba(255,255,255,0.15);border-radius:8px;max-height:200px;overflow-y:auto;margin-top:2px;box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">Applies To</label>
+      <div class="engine-chips">
+        <div class="engine-chip selected" data-eng="port" onclick="toggleChip(this)">Port Engine</div>
+        <div class="engine-chip selected" data-eng="stbd" onclick="toggleChip(this)">Stbd Engine</div>
+        <div class="engine-chip" data-eng="general" onclick="toggleChip(this)">General</div>
+      </div>
+    </div>
+
+    <div class="form-row-2">
+      <div>
+        <label class="form-label">Date</label>
+        <input type="date" class="form-input" id="fDate">
+      </div>
+      <div>
+        <label class="form-label">Engine Hours</label>
+        <input type="number" class="form-input" id="fHours" placeholder="e.g. 372">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">Notes</label>
+      <textarea class="form-input" id="fNotes" placeholder="Parts used, observations, cost…"></textarea>
+    </div>
+
+    <div class="form-row-2">
+      <div>
+        <label class="form-label">Parts / Cost ($)</label>
+        <input type="text" class="form-input" id="fCost" placeholder="e.g. $45.00">
+      </div>
+      <div>
+        <label class="form-label">Technician</label>
+        <input type="text" class="form-input" id="fTech" placeholder="Optional">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">📷 Photo Notes</label>
+      <div class="photo-upload-area" id="photoUploadArea">
+        <input type="file" id="fPhotos" accept="image/*" multiple capture="environment" onchange="handlePhotoSelect(event)">
+        <div class="photo-upload-icon">📷</div>
+        <div class="photo-upload-label">Tap to take photo or <span>choose from library</span></div>
+      </div>
+      <div class="photo-previews" id="photoPreviews"></div>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">📦 Stock Adjustment <span style="color:var(--text-dim);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <div class="stock-toggle" onclick="toggleStockPanel()">
+        <span class="stock-toggle-label" id="stockToggleLabel">Tap to add or remove parts from inventory</span>
+        <span class="stock-toggle-arrow" id="stockArrow">▼</span>
+      </div>
+      <div class="stock-panel" id="stockPanel">
+        <select class="stock-part-select" id="fStockPart" onchange="onStockPartChange()">
+          <option value="">— Select a part —</option>
+        </select>
+        <div class="stock-adj-row">
+          <button class="stock-adj-btn minus" onclick="adjustStock(-1)">−</button>
+          <div class="stock-adj-display">
+            <div class="stock-adj-current" id="stockCurrentDisplay">—</div>
+            <div class="stock-adj-label">IN STOCK</div>
+          </div>
+          <button class="stock-adj-btn plus" onclick="adjustStock(1)">＋</button>
+        </div>
+        <div class="stock-adj-change" id="stockChangeLabel"></div>
+      </div>
+    </div>
+
+    <button class="btn-log" onclick="submitLog()">✓ Log Task</button>
+    <button class="btn-cancel" onclick="closeLogForm()">Cancel</button>
+  </div>
+</div>
+
+<!-- Photo viewer -->
+<div class="photo-viewer" id="photoViewer">
+  <div class="photo-viewer-bar">
+    <div class="photo-viewer-title" id="viewerTitle">Photo 1 of 1</div>
+    <button class="photo-viewer-close" onclick="closeViewer()">✕</button>
+  </div>
+  <img class="photo-viewer-img" id="viewerImg" src="" alt="Photo note">
+  <div class="photo-viewer-arrows">
+    <button class="photo-arrow" id="arrowPrev" onclick="viewerNav(-1)">‹</button>
+    <button class="photo-arrow" id="arrowNext" onclick="viewerNav(1)">›</button>
+  </div>
+  <div class="photo-viewer-nav" id="viewerDots"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════════════
+const TODAY = new Date();
+
+// ── localStorage helpers ──────────────────────────────────────────
+const STORAGE_KEY = 'vessellog_template';
+
+function saveState() {
+  try {
+    const toSave = {
+      portHrs: state.portHrs,
+      stbdHrs: state.stbdHrs,
+      loggedTasks: state.loggedTasks,
+      trips: state.trips,
+      engineTaskOverrides: engineTasks.map(t => ({
+        name: t.name,
+        port: { lastDate: t.port.lastDate, lastHrs: t.port.lastHrs, nextHrs: t.port.nextHrs, nextDate: t.port.nextDate },
+        stbd: { lastDate: t.stbd.lastDate, lastHrs: t.stbd.lastHrs, nextHrs: t.stbd.nextHrs, nextDate: t.stbd.nextDate },
+      })),
+      inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock, notes: i.notes || '' })),
+      userAddedParts: inventory.filter(i => i.userAdded),
+      userAddedTasks: scheduledTasks.filter(t => t.userAdded),
+      scheduledTaskOverrides: scheduledTasks.filter(t => !t.userAdded).map(t => ({ name: t.name, lastDate: t.lastDate, nextDate: t.nextDate })),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    // Save persistent data (survives Clear Saved Data)
+    const persistent = {
+      portHrs: state.portHrs,
+      stbdHrs: state.stbdHrs,
+      trips: state.trips,
+      inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock, notes: i.notes || '' })),
+      userAddedParts: inventory.filter(i => i.userAdded),
+      engineTaskOverrides: toSave.engineTaskOverrides,
+      scheduledTaskOverrides: toSave.scheduledTaskOverrides,
+      userAddedTasks: toSave.userAddedTasks,
+    };
+    localStorage.setItem(STORAGE_KEY + '_persist', JSON.stringify(persistent));
+  } catch(e) { console.warn('Save failed:', e); }
+}
+
+function loadState() {
+  const mainExists = !!localStorage.getItem(STORAGE_KEY);
+  // Load persistent data first (baseline that survives Clear Saved Data)
+  try {
+    const ps = localStorage.getItem(STORAGE_KEY + '_persist');
+    if (ps) {
+      const pd = JSON.parse(ps);
+      if (pd.portHrs) { state.portHrs = pd.portHrs; document.getElementById('portHrs').value = pd.portHrs; }
+      if (pd.stbdHrs) { state.stbdHrs = pd.stbdHrs; document.getElementById('stbdHrs').value = pd.stbdHrs; }
+      if (pd.trips) state.trips = pd.trips;
+      if (pd.inventoryStock) pd.inventoryStock.forEach(s => { const item = inventory.find(i => i.id === s.id); if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; } });
+      if (pd.userAddedParts) pd.userAddedParts.forEach(p => { if (!inventory.find(i => i.id === p.id)) inventory.push(p); });
+      if (pd.engineTaskOverrides) pd.engineTaskOverrides.forEach(override => { const task = engineTasks.find(t => t.name === override.name); if (task) { task.port.lastDate=override.port.lastDate; task.port.lastHrs=override.port.lastHrs; task.port.nextHrs=override.port.nextHrs; task.port.nextDate=override.port.nextDate; task.stbd.lastDate=override.stbd.lastDate; task.stbd.lastHrs=override.stbd.lastHrs; task.stbd.nextHrs=override.stbd.nextHrs; task.stbd.nextDate=override.stbd.nextDate; } });
+      if (pd.scheduledTaskOverrides) pd.scheduledTaskOverrides.forEach(override => { const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded); if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; } });
+      if (pd.userAddedTasks) pd.userAddedTasks.forEach(t => { if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t); });
+    }
+  } catch(e) { console.warn('Persist load failed:', e); }
+  // Then load main session state — overwrites persist where present
+  if (!mainExists) return;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const data = JSON.parse(saved);
+    if (data.portHrs) { state.portHrs = data.portHrs; document.getElementById('portHrs').value = data.portHrs; }
+    if (data.stbdHrs) { state.stbdHrs = data.stbdHrs; document.getElementById('stbdHrs').value = data.stbdHrs; }
+    if (data.loggedTasks) state.loggedTasks = data.loggedTasks;
+    if (data.trips) state.trips = data.trips;
+    if (data.engineTaskOverrides) {
+      data.engineTaskOverrides.forEach(override => {
+        const task = engineTasks.find(t => t.name === override.name);
+        if (task) {
+          task.port.lastDate = override.port.lastDate; task.port.lastHrs = override.port.lastHrs;
+          task.port.nextHrs  = override.port.nextHrs;  task.port.nextDate = override.port.nextDate;
+          task.stbd.lastDate = override.stbd.lastDate; task.stbd.lastHrs = override.stbd.lastHrs;
+          task.stbd.nextHrs  = override.stbd.nextHrs;  task.stbd.nextDate = override.stbd.nextDate;
+        }
+      });
+    }
+    if (data.scheduledTaskOverrides) {
+      data.scheduledTaskOverrides.forEach(override => {
+        const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded);
+        if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; }
+      });
+    }
+    if (data.inventoryStock) {
+      data.inventoryStock.forEach(s => {
+        const item = inventory.find(i => i.id === s.id);
+        if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; }
+      });
+    }
+    if (data.userAddedParts) {
+      data.userAddedParts.forEach(p => {
+        if (!inventory.find(i => i.id === p.id)) inventory.push(p);
+      });
+    }
+    if (data.userAddedTasks) {
+      data.userAddedTasks.forEach(t => {
+        if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t);
+      });
+    }
+  } catch(e) { console.warn('Load failed:', e); }
+}
+
+function clearLocalData() {
+  if (!confirm('This will clear all saved tasks and hours from this device. Only do this after syncing with Claude. Are you sure?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  // Keep _persist so engine hours and inventory survive
+  location.reload();
+}
+
+let state = {
+  portHrs: 0,
+  stbdHrs: 0,
+  loggedTasks: [],
+  trips: [],
+};
+
+let pendingPhotos = [];
+let pendingStock = { partId: null, partName: null, delta: 0, originalStock: null };
+
+// Engine tasks — shared list, status computed per engine
+const engineTasks = [
+  // Hour-based tasks — port and stbd
+  { name:"Oil and Filters",       freq:"200 hrs",   port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Injector oil",          freq:"50 hrs",    port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Secondary Fuel Filter", freq:"200 hrs",   port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Primary Fuel Filter",   freq:"200 hrs",   port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Transmission Oil",      freq:"200 hrs",   port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Zinc Pencils",          freq:"3 monthly", port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Raw Water Impeller",    freq:"annual",    port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Coolant",               freq:"2 yearly",  port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Engine Oil Coolers",    freq:"5 yearly",  port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Heat Exchangers",       freq:"5 yearly",  port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Alternator/Drive Belts",freq:"annual",    port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Exhaust Elbow",         freq:"annual",    port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+  { name:"Engine Mounts",         freq:"each haulout", port:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null }, stbd:{ lastDate:"—", lastHrs:null, nextHrs:null, nextDate:null } },
+];
+
+const scheduledTasks = [
+  { name:"House Batteries",              lastDate:"—", nextDate:null, interval:"5 years" },
+  { name:"Start Batteries",             lastDate:"—", nextDate:null, interval:"5 years" },
+  { name:"Varnishing",                  lastDate:"—", nextDate:null, interval:"annual" },
+  { name:"Antifouling",                 lastDate:"—", nextDate:null, interval:"annual" },
+  { name:"Through-Hulls & Seacocks",    lastDate:"—", nextDate:null, interval:"annual" },
+  { name:"Bilge Pumps",                 lastDate:"—", nextDate:null, interval:"annual" },
+  { name:"Safety Gear (Flares/Extinguishers)", lastDate:"—", nextDate:null, interval:"annual" },
+];
+
+const inventory = [
+  { id:"INV-001", cat:"Oil",     name:"Engine Oil & Filters",  partNum:null, vendor:null, stock:null, cost:null, notes:"" },
+  { id:"INV-002", cat:"Fuel",    name:"Primary Fuel Filter",   partNum:null, vendor:null, stock:null, cost:null, notes:"" },
+  { id:"INV-003", cat:"Fuel",    name:"Secondary Fuel Filter", partNum:null, vendor:null, stock:null, cost:null, notes:"" },
+  { id:"INV-004", cat:"Cooling", name:"Raw Water Impeller",    partNum:null, vendor:null, stock:null, cost:null, notes:"" },
+  { id:"INV-005", cat:"Cooling", name:"Coolant",               partNum:null, vendor:null, stock:null, cost:null, notes:"" },
+];
+
+const maintenanceLog = [
+  // Baked-in maintenance history goes here
+  // { date:"DD-Mon-YYYY", task:"Task name", engine:"general", notes:"", tech:"" },
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// STATUS LOGIC
+// ═══════════════════════════════════════════════════════════════════
+function parseDate(str) {
+  if (!str || str === '—') return null;
+  const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  const [d,m,y] = str.split('-');
+  return new Date(parseInt(y), months[m], parseInt(d));
+}
+
+function getEngineStatus(task, side) {
+  const curHrs = side === 'port' ? state.portHrs : state.stbdHrs;
+  const data = task[side];
+
+  const logged = state.loggedTasks.find(l =>
+    l.task === task.name && (l.engines.includes(side) || l.engines.includes('both'))
+  );
+
+  if (data.nextHrs !== null) {
+    let nh = data.nextHrs;
+    if (logged && logged.hours) {
+      const interval = parseInt(task.freq);
+      nh = logged.hours + (isNaN(interval) ? 0 : interval);
+    }
+    const rem = nh - curHrs;
+    if (rem <= 0)  return { cls:'overdue',  icon:'⚠', detail:`${Math.abs(rem)}hrs over` };
+    if (rem <= 25) return { cls:'due-soon', icon:'🔔', detail:`${rem}hrs left` };
+    return           { cls:'ok',       icon:'✓', detail:`+${rem}hrs` };
+  }
+  if (data.nextDate) {
+    const nd = parseDate(data.nextDate);
+    if (!nd) return { cls:'no-sched', icon:'—', detail:'No schedule' };
+    const days = Math.round((nd - TODAY) / 86400000);
+    if (days < 0)   return { cls:'overdue',  icon:'⚠', detail:`${Math.abs(days)}d ago` };
+    if (days <= 60) return { cls:'due-soon', icon:'🔔', detail:`${days}d` };
+    return            { cls:'ok',       icon:'✓', detail:`${days}d` };
+  }
+  return { cls:'no-sched', icon:'—', detail:'No date set' };
+}
+
+function getScheduledStatus(task) {
+  const nd = parseDate(task.nextDate);
+  if (!nd) return { cls:'no-sched', icon:'—', detail:'No date set' };
+  const days = Math.round((nd - TODAY) / 86400000);
+  if (days < 0)   return { cls:'overdue',  icon:'⚠', detail:`${Math.abs(days)}d ago` };
+  if (days <= 60) return { cls:'due-soon', icon:'🔔', detail:`${days}d` };
+  return            { cls:'ok',       icon:'✓', detail:`${days}d` };
+}
+
+function worstStatus(cls1, cls2) {
+  const priority = { overdue:0, 'due-soon':1, ok:2, 'no-sched':3 };
+  return priority[cls1] <= priority[cls2] ? cls1 : cls2;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════
+function renderAll() {
+  renderDashboard();
+  renderEngineList();
+  renderLog();
+  renderInventory();
+  renderTrips();
+  document.getElementById('portHrsDisplay').textContent = state.portHrs + ' hrs';
+  document.getElementById('stbdHrsDisplay').textContent = state.stbdHrs + ' hrs';
+}
+
+function renderDashboard() {
+  // Alerts
+  const overdues  = engineTasks.filter(t => worstStatus(getEngineStatus(t,'port').cls, getEngineStatus(t,'stbd').cls) === 'overdue');
+  const dueSoons  = engineTasks.filter(t => worstStatus(getEngineStatus(t,'port').cls, getEngineStatus(t,'stbd').cls) === 'due-soon');
+  let alertsHTML = '';
+  if (overdues.length) {
+    alertsHTML += `<div class="alert-banner"><span class="alert-icon">🚨</span><div class="alert-text"><strong>Action Required</strong>${overdues.map(t=>t.name).join(', ')}</div></div>`;
+  }
+  if (dueSoons.length) {
+    alertsHTML += `<div class="alert-banner amber"><span class="alert-icon">🔔</span><div class="alert-text"><strong>Due Soon</strong>${dueSoons.map(t=>t.name).join(', ')}</div></div>`;
+  }
+  document.getElementById('dashAlerts').innerHTML = alertsHTML;
+
+  // Engine tasks sorted by priority
+  const sorted = [...engineTasks].sort((a, b) => {
+    const pa = { overdue:0, 'due-soon':1, ok:2, 'no-sched':3 };
+    const wa = worstStatus(getEngineStatus(a,'port').cls, getEngineStatus(a,'stbd').cls);
+    const wb2 = worstStatus(getEngineStatus(b,'port').cls, getEngineStatus(b,'stbd').cls);
+    return pa[wa] - pa[wb2];
+  });
+
+  let overdueCount = 0, dueSoonCount = 0;
+  let html = '';
+  sorted.forEach((task, i) => {
+    const ps = getEngineStatus(task, 'port');
+    const ss = getEngineStatus(task, 'stbd');
+    const worst = worstStatus(ps.cls, ss.cls);
+    if (worst === 'overdue') overdueCount++;
+    if (worst === 'due-soon') dueSoonCount++;
+    const logged = state.loggedTasks.find(l => l.task === task.name);
+    const loggedClass = logged ? ' logged' : '';
+    const checkIcon = logged ? '✓' : '';
+    // Show worst status detail
+    const displaySt = ps.cls === worst ? ps : ss;
+    html += `
+    <div class="task-card ${worst}${loggedClass}" onclick="quickLog('${task.name}','both')" style="animation-delay:${i*0.03}s">
+      <div class="task-main">
+        <div class="task-check">${checkIcon}</div>
+        <div class="task-info">
+          <div class="task-name">${task.name}</div>
+          <div class="task-meta">${task.freq}</div>
+        </div>
+        <div class="task-status">${displaySt.icon} ${displaySt.detail}</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('dashEngineTasks').innerHTML = html;
+  document.getElementById('engBadge').textContent = overdueCount ? `${overdueCount} overdue` : (dueSoonCount ? `${dueSoonCount} due soon` : 'All OK');
+
+  // Scheduled
+  let schedHTML = '';
+  scheduledTasks.forEach((t, i) => {
+    const st = getScheduledStatus(t);
+    schedHTML += `
+    <div class="task-card ${st.cls}" onclick="openLogForm('${t.name}','general')" style="animation-delay:${i*0.04}s;cursor:pointer;">
+      <div class="task-main">
+        <div class="task-check">${state.loggedTasks.find(l=>l.task===t.name)?'✓':''}</div>
+        <div class="task-info">
+          <div class="task-name">${t.name}</div>
+          <div class="task-meta">Last: ${t.lastDate} · ${t.interval}</div>
+        </div>
+        <div class="task-status">${st.icon} ${st.detail}</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('dashScheduled').innerHTML = schedHTML;
+}
+
+function renderEngineList() {
+  let html = '';
+  engineTasks.forEach((task, i) => {
+    const ps = getEngineStatus(task, 'port');
+    const ss = getEngineStatus(task, 'stbd');
+    const worst = worstStatus(ps.cls, ss.cls);
+    const cardCls = worst === 'overdue' ? 'overdue-any' :
+                    worst === 'due-soon' ? 'due-soon-any' :
+                    worst === 'ok' ? 'ok-all' : 'no-sched-all';
+    const logged = state.loggedTasks.find(l => l.task === task.name);
+
+    html += `
+    <div class="eng-row-card ${cardCls}" style="animation-delay:${i*0.03}s">
+      <div class="eng-row-name" onclick="quickLog('${task.name}','both')">
+        <span>${logged ? '✓ ' : ''}${task.name}</span>
+        <span class="eng-row-freq">${task.freq}</span>
+      </div>
+      <div class="eng-row-cols">
+        <div class="eng-col port">
+          <div class="eng-col-header">⬅ PORT</div>
+          <div class="eng-status-pill ${ps.cls}">${ps.icon} ${ps.detail}</div>
+          <div class="eng-col-detail">Last: ${task.port.lastDate}</div>
+        </div>
+        <div class="eng-col stbd">
+          <div class="eng-col-header">STBD ➡</div>
+          <div class="eng-status-pill ${ss.cls}">${ss.icon} ${ss.detail}</div>
+          <div class="eng-col-detail">Last: ${task.stbd.lastDate}</div>
+        </div>
+      </div>
+      ${task.notes ? `<div class="eng-row-note">💬 ${task.notes}</div>` : ''}
+    </div>`;
+  });
+  document.getElementById('engineTaskList').innerHTML = html;
+}
+
+function deleteLogEntry(idx) {
+  if (!confirm('Delete this log entry?')) return;
+  state.loggedTasks.splice(idx, 1);
+  saveState();
+  renderLog();
+  renderDashboard();
+  renderEngineList();
+  showToast('Entry deleted');
+}
+
+function renderLog() {
+  const bakedCount = maintenanceLog.length;
+  const all = [...maintenanceLog, ...state.loggedTasks.map(l => ({
+    date: l.date, task: l.task, engine: l.engines.join('+'),
+    notes: l.notes, tech: l.tech, cost: l.cost, hours: l.hours,
+    photos: l.photos || [], isLogged: true
+  }))].reverse();
+
+  document.getElementById('logBadge').textContent = `${all.length} entries`;
+  if (!all.length) {
+    document.getElementById('logList').innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No log entries yet.<br>Tap ＋ to record maintenance.</div></div>`;
+    return;
+  }
+  let html = '';
+  // Track index into loggedTasks for delete (reversed order)
+  const loggedReversed = [...state.loggedTasks].reverse();
+  let loggedIdx = 0;
+  all.forEach((entry, entryIdx) => {
+    const engLabel = entry.engine === 'general' ? 'general' :
+                     entry.engine === 'both' ? 'port+stbd' : entry.engine;
+    const tagCls = engLabel.includes('port') && engLabel.includes('stbd') ? 'tag-port' :
+                   engLabel.includes('port') ? 'tag-port' :
+                   engLabel.includes('stbd') ? 'tag-stbd' : 'tag-gen';
+    const photos = entry.photos || [];
+    let photoHtml = '';
+    if (photos.length) {
+      photoHtml = `<div class="log-photo-strip">`;
+      photos.forEach((p, pi) => {
+        photoHtml += `<img class="log-photo-thumb" src="${p.dataUrl}" alt="Photo ${pi+1}" onclick="openViewer(${entryIdx}, ${pi}, event)">`;
+      });
+      photoHtml += `</div>`;
+    }
+    // Delete button only for user-logged entries (not baked-in history)
+    let deleteBtn = '';
+    if (entry.isLogged) {
+      const realIdx = state.loggedTasks.length - 1 - loggedIdx;
+      deleteBtn = `<button onclick="deleteLogEntry(${realIdx})" style="background:none;border:none;color:var(--text-dim);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1;" title="Delete entry">🗑</button>`;
+      loggedIdx++;
+    }
+    html += `
+    <div class="log-entry">
+      <div class="log-entry-header">
+        <div class="log-entry-task">${entry.task}</div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          ${deleteBtn}
+          <div class="log-entry-date">${entry.date}</div>
+        </div>
+      </div>
+      <div class="log-entry-meta">
+        <span class="log-entry-tag ${tagCls}">${engLabel.toUpperCase()}</span>
+        ${entry.hours ? `<span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);margin-left:6px;">${entry.hours} hrs</span>` : ''}
+        ${entry.notes ? `<div style="margin-top:5px;">${entry.notes}</div>` : ''}
+        ${entry.tech  ? `<div style="margin-top:4px;">👤 ${entry.tech}</div>` : ''}
+        ${entry.cost  ? `<div style="margin-top:4px;">💲${entry.cost}</div>` : ''}
+        ${photos.length ? `<span class="photo-count-badge">📷 ${photos.length} photo${photos.length>1?'s':''}</span>` : ''}
+      </div>
+      ${photoHtml}
+    </div>`;
+  });
+  document.getElementById('logList').innerHTML = html;
+  window._logEntries = all;
+}
+
+function renderInventory() {
+  let html = '';
+  inventory.forEach((item, idx) => {
+    const stockVal = item.stock;
+    const stockCls = stockVal === null ? 'none' : (stockVal === 0 ? 'low' : 'ok');
+    const stockLabel = stockVal === null ? 'NO DATA' : (stockVal === 0 ? 'OUT OF STOCK' : `${stockVal} in stock`);
+    const meta = [
+      item.partNum ? `🔩 ${item.partNum}` : '',
+      item.vendor  ? `🏪 ${item.vendor}` : '',
+      item.cost    ? `💲${item.cost.toFixed(2)}` : '',
+      item.notes   ? `📝 ${item.notes}` : '',
+    ].filter(Boolean).join(' &nbsp;·&nbsp; ');
+    const qty = stockVal !== null ? stockVal : 0;
+    html += `
+    <div class="inv-card" id="invcard-${idx}">
+      <div class="inv-card-header">
+        <div>
+          <div class="inv-cat">${item.cat}</div>
+          <div class="inv-name">${item.name}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div class="inv-stock ${stockCls}">${stockLabel}</div>
+          <button class="inv-action-btn" onclick="toggleEditPart(${idx})" title="Edit">✏️</button>
+          <button class="inv-action-btn delete" onclick="deletePart(${idx})" title="Delete">🗑</button>
+        </div>
+      </div>
+      ${meta ? `<div class="inv-meta">${meta}</div>` : ''}
+      <div class="inv-stock-controls">
+        <button class="inv-adj-btn minus" onclick="adjustPartStock(${idx}, -1)">−</button>
+        <span class="inv-qty-display">${qty}</span>
+        <button class="inv-adj-btn plus"  onclick="adjustPartStock(${idx}, +1)">＋</button>
+      </div>
+      <div class="inv-edit-form" id="inv-edit-${idx}">
+        <div class="inv-edit-row"><span class="inv-edit-label">Name</span><input class="inv-edit-input" id="ei-name-${idx}" value="${item.name.replace(/"/g,'&quot;')}"></div>
+        <div class="inv-edit-row"><span class="inv-edit-label">Category</span><input class="inv-edit-input" id="ei-cat-${idx}" value="${(item.cat||'').replace(/"/g,'&quot;')}"></div>
+        <div class="inv-edit-row"><span class="inv-edit-label">Part no.</span><input class="inv-edit-input" id="ei-pnum-${idx}" value="${(item.partNum||'').replace(/"/g,'&quot;')}"></div>
+        <div class="inv-edit-row"><span class="inv-edit-label">Supplier</span><input class="inv-edit-input" id="ei-vendor-${idx}" value="${(item.vendor||'').replace(/"/g,'&quot;')}"></div>
+        <div class="inv-edit-row"><span class="inv-edit-label">Notes</span><input class="inv-edit-input" id="ei-notes-${idx}" value="${(item.notes||'').replace(/"/g,'&quot;')}"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="log-submit-btn" onclick="saveEditPart(${idx})" style="flex:1;padding:8px;">Save</button>
+          <button class="log-submit-btn" onclick="toggleEditPart(${idx})" style="flex:1;padding:8px;background:var(--hull);border:1px solid rgba(255,255,255,0.2);">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('inventoryList').innerHTML = html || '<div style="color:var(--text-dim);text-align:center;padding:20px;">No parts yet. Tap + Add Part to get started.</div>';
+}
+
+function renderExport() {
+  if (!state.loggedTasks.length) {
+    document.getElementById('exportText').textContent = 'Log tasks first to generate export summary.';
+    document.getElementById('sessionSummary').textContent = 'No tasks logged yet.';
+    return;
+  }
+  const today = formatDate(new Date());
+  const lines = [`UPDATE: ${today}`];
+  lines.push(`Port Engine: ${state.portHrs} hrs | Stbd Engine: ${state.stbdHrs} hrs`);
+  lines.push('');
+  lines.push('COMPLETED TASKS:');
+  state.loggedTasks.forEach(t => {
+    let line = `• ${t.task}`;
+    if (t.engines && t.engines.length) line += ` [${t.engines.join('+')}]`;
+    if (t.hours) line += ` @ ${t.hours} hrs`;
+    if (t.notes) line += ` — ${t.notes}`;
+    if (t.cost)  line += ` (${t.cost})`;
+    if (t.tech)  line += ` by ${t.tech}`;
+    lines.push(line);
+  });
+  const stockChanges = state.loggedTasks.filter(t => t.stockChange);
+  if (stockChanges.length) {
+    lines.push('');
+    lines.push('STOCK UPDATES:');
+    stockChanges.forEach(t => {
+      const sc = t.stockChange;
+      const sign = sc.delta > 0 ? `+${sc.delta}` : `${sc.delta}`;
+      lines.push(`• ${sc.partName}: ${sign} → now ${sc.newStock} in stock`);
+    });
+  }
+  lines.push('');
+  lines.push('Please update the spreadsheet with these entries.');
+  document.getElementById('exportText').textContent = lines.join('\n');
+  document.getElementById('sessionSummary').textContent = state.loggedTasks.map(t => `${t.task} — ${t.date}`).join('\n');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// INTERACTIONS
+// ═══════════════════════════════════════════════════════════════════
+function showTab(tab) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  const tabIdx = ['dashboard','engine','log','trips','inventory'].indexOf(tab);
+  document.querySelectorAll('.tab')[tabIdx].classList.add('active');
+  document.querySelectorAll('.nav-item')[tabIdx].classList.add('active');
+  // Show boat photo only on dashboard
+  const wrap = document.getElementById('boatPhotoWrap');
+  const inp  = document.getElementById('boatPhotoInput');
+  if (wrap) wrap.style.display = tab === 'dashboard' ? 'block' : 'none';
+  if (inp)  inp.style.display  = 'none';
+  if (tab === 'log') renderLog();
+  if (tab === 'trips') renderTrips();
+}
+
+function updateHours() {
+  state.portHrs = parseInt(document.getElementById('portHrs').value) || 0;
+  state.stbdHrs = parseInt(document.getElementById('stbdHrs').value) || 0;
+  document.getElementById('portHrsDisplay').textContent = state.portHrs + ' hrs';
+  document.getElementById('stbdHrsDisplay').textContent = state.stbdHrs + ' hrs';
+  saveState();
+  renderDashboard();
+  renderEngineList();
+}
+
+function openLogForm(taskName, engine) {
+  const allTaskNames = [...new Set([
+    ...engineTasks.map(t=>t.name),
+    ...scheduledTasks.map(t=>t.name),
+  ])];
+  window._allTaskNames = allTaskNames; buildTaskDropdown(allTaskNames);
+
+  if (taskName) {
+    document.getElementById('fTask').value = taskName;
+    document.getElementById('logFormTitle').textContent = taskName;
+    document.querySelectorAll('.engine-chip').forEach(c => {
+      if (engine === 'both') {
+        c.classList.toggle('selected', c.dataset.eng === 'port' || c.dataset.eng === 'stbd');
+      } else {
+        c.classList.toggle('selected', c.dataset.eng === engine);
+      }
+    });
+    const task = engineTasks.find(t => t.name === taskName);
+    if (task && task.port.nextHrs) {
+      document.getElementById('fHours').value = task.port.nextHrs;
+    }
+  } else {
+    document.getElementById('fTask').value = '';
+    document.getElementById('logFormTitle').textContent = 'Log Maintenance Task';
+    document.getElementById('fHours').value = '';
+    document.querySelectorAll('.engine-chip').forEach(c => {
+      c.classList.toggle('selected', c.dataset.eng === 'port' || c.dataset.eng === 'stbd');
+    });
+  }
+
+  const d = new Date();
+  document.getElementById('fDate').value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  document.getElementById('fNotes').value = '';
+  document.getElementById('fCost').value = '';
+  document.getElementById('fTech').value = '';
+  resetStockPanel();
+  pendingPhotos = [];
+  document.getElementById('photoPreviews').innerHTML = '';
+  document.getElementById('fPhotos').value = '';
+  document.getElementById('logOverlay').classList.add('open');
+}
+
+function resetStockPanel() {
+  pendingStock = { partId: null, partName: null, delta: 0, originalStock: null };
+  document.getElementById('stockPanel').classList.remove('open');
+  document.getElementById('stockArrow').classList.remove('open');
+  document.getElementById('fStockPart').value = '';
+  document.getElementById('stockCurrentDisplay').textContent = '—';
+  document.getElementById('stockChangeLabel').textContent = '';
+  document.getElementById('stockToggleLabel').innerHTML = 'Tap to add or remove parts from inventory';
+}
+
+function quickLog(taskName, engine) {
+  const existing = state.loggedTasks.find(l => l.task === taskName);
+  if (existing) { showToast(`${taskName} already logged ✓`); return; }
+  openLogForm(taskName, engine);
+}
+
+function closeLogForm() {
+  document.getElementById('logOverlay').classList.remove('open');
+  pendingPhotos = [];
+  document.getElementById('photoPreviews').innerHTML = '';
+  document.getElementById('fPhotos').value = '';
+  resetStockPanel();
+}
+
+function toggleStockPanel() {
+  const panel = document.getElementById('stockPanel');
+  const arrow = document.getElementById('stockArrow');
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  arrow.classList.toggle('open', !isOpen);
+  if (!isOpen) {
+    document.getElementById('fStockPart').innerHTML = '<option value="">— Select a part —</option>' +
+      inventory.map(i => `<option value="${i.id}">${i.name} (${i.stock !== null ? i.stock + ' in stock' : 'NO DATA'})</option>`).join('');
+  }
+}
+
+function onStockPartChange() {
+  const id = document.getElementById('fStockPart').value;
+  if (!id) { resetStockPanel(); return; }
+  const part = inventory.find(i => i.id === id);
+  if (!part) return;
+  pendingStock = { partId: id, partName: part.name, delta: 0, originalStock: part.stock || 0 };
+  document.getElementById('stockCurrentDisplay').textContent = part.stock !== null ? part.stock : 0;
+  document.getElementById('stockChangeLabel').textContent = '';
+  document.getElementById('stockToggleLabel').innerHTML = `<span>${part.name}</span>`;
+}
+
+function adjustStock(dir) {
+  if (!pendingStock.partId) { showToast('Select a part first'); return; }
+  pendingStock.delta += dir;
+  const newVal = Math.max(0, (pendingStock.originalStock || 0) + pendingStock.delta);
+  document.getElementById('stockCurrentDisplay').textContent = newVal;
+  const lbl = document.getElementById('stockChangeLabel');
+  if (pendingStock.delta > 0) { lbl.textContent = `+${pendingStock.delta} added`; lbl.className = 'stock-adj-change adding'; }
+  else if (pendingStock.delta < 0) { lbl.textContent = `${pendingStock.delta} removed`; lbl.className = 'stock-adj-change removing'; }
+  else { lbl.textContent = 'No change'; lbl.className = 'stock-adj-change'; }
+}
+
+function overlayClick(e) {
+  if (e.target === document.getElementById('logOverlay')) closeLogForm();
+}
+
+function toggleChip(el) { el.classList.toggle('selected'); }
+
+function submitLog() {
+  const task  = document.getElementById('fTask').value.trim();
+  const dateV = document.getElementById('fDate').value;
+  const hrs   = document.getElementById('fHours').value;
+  const notes = document.getElementById('fNotes').value.trim();
+  const cost  = document.getElementById('fCost').value.trim();
+  const tech  = document.getElementById('fTech').value.trim();
+
+  if (!task)  { showToast('Please enter a task name'); return; }
+  if (!dateV) { showToast('Please select a date'); return; }
+
+  const selectedEngines = [...document.querySelectorAll('.engine-chip.selected')].map(c=>c.dataset.eng);
+  if (!selectedEngines.length) { showToast('Select at least one engine/system'); return; }
+
+  const dateStr = formatDate(new Date(dateV));
+
+  let stockChange = null;
+  if (pendingStock.partId && pendingStock.delta !== 0) {
+    const part = inventory.find(i => i.id === pendingStock.partId);
+    if (part) {
+      const oldStock = part.stock || 0;
+      part.stock = Math.max(0, oldStock + pendingStock.delta);
+      stockChange = { partId: pendingStock.partId, partName: pendingStock.partName, delta: pendingStock.delta, newStock: part.stock };
+    }
+  }
+
+  state.loggedTasks.push({ task, date: dateStr, engines: selectedEngines, hours: hrs ? parseInt(hrs) : null, notes, cost, tech, photos: [...pendingPhotos], stockChange });
+
+  if (hrs) {
+    if (selectedEngines.includes('port')) {
+      state.portHrs = Math.max(state.portHrs, parseInt(hrs));
+      document.getElementById('portHrs').value = state.portHrs;
+    }
+    if (selectedEngines.includes('stbd')) {
+      state.stbdHrs = Math.max(state.stbdHrs, parseInt(hrs));
+      document.getElementById('stbdHrs').value = state.stbdHrs;
+    }
+  }
+
+  selectedEngines.forEach(eng => {
+    if (eng === 'port' || eng === 'stbd') {
+      const tsk = engineTasks.find(t => t.name === task);
+      if (tsk) {
+        tsk[eng].lastDate = dateStr;
+        if (hrs) tsk[eng].lastHrs = parseInt(hrs);
+        // Recalculate nextDate for date-based tasks
+        // Update nextDate if task is date-based (no nextHrs) regardless of whether nextDate was set
+        if (tsk[eng].nextHrs === null) {
+          const nd = calcNextDate(dateStr, tsk.freq);
+          if (nd) tsk[eng].nextDate = nd;
+        }
+      }
+    }
+  });
+
+  // Also recalculate scheduled tasks
+  const schedTask = scheduledTasks.find(t => t.task === task || t.name === task);
+  if (schedTask) {
+    schedTask.lastDate = dateStr;
+    const nd = calcNextDate(dateStr, schedTask.interval);
+    if (nd) schedTask.nextDate = nd;
+  }
+
+  saveState();
+  closeLogForm();
+  const stockMsg = stockChange ? ` · ${stockChange.partName} → ${stockChange.newStock} in stock` : '';
+  showToast(`✓ ${task} logged${stockMsg}`);
+  renderAll();
+}
+
+function copyExport() {
+  const text = document.getElementById('exportText').textContent;
+  if (!state.loggedTasks.length) { showToast('Log tasks first'); return; }
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy to Clipboard'; btn.classList.remove('copied'); }, 2500);
+  }).catch(() => {
+    const el = document.createElement('textarea');
+    el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
+    showToast('Copied!');
+  });
+}
+
+// ── Add Part (001 + 003) ──────────────────────────────────────────
+function toggleAddPart() {
+  const f = document.getElementById('addPartForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function addNewPart() {
+  const name = document.getElementById('npName').value.trim();
+  if (!name) { showToast('Please enter a part name'); return; }
+  const newId = 'USR-' + Date.now();
+  inventory.push({
+    id: newId,
+    cat:     document.getElementById('npCat').value.trim() || 'General',
+    name,
+    partNum: document.getElementById('npPartNum').value.trim() || null,
+    vendor:  document.getElementById('npVendor').value.trim() || null,
+    stock:   parseInt(document.getElementById('npStock').value) || 0,
+    cost:    null,
+    notes:   document.getElementById('npNotes').value.trim() || '',
+    userAdded: true,
+  });
+  ['npName','npCat','npPartNum','npVendor','npStock','npNotes'].forEach(id => document.getElementById(id).value = '');
+  toggleAddPart();
+  saveState();
+  renderInventory();
+  showToast('✓ Part added');
+}
+
+// ── Add Scheduled Task (002) ──────────────────────────────────────
+function toggleAddTask() {
+  const f = document.getElementById('addTaskForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function addNewTask() {
+  const name = document.getElementById('ntName').value.trim();
+  if (!name) { showToast('Please enter a task name'); return; }
+  const rawDate = document.getElementById('ntNextDate').value;
+  const nextDate = rawDate ? formatDate(new Date(rawDate)) : null;
+  scheduledTasks.push({
+    name,
+    lastDate:  '—',
+    nextDate,
+    interval:  document.getElementById('ntInterval').value.trim() || 'annual',
+    notes:     document.getElementById('ntNotes').value.trim() || '',
+    userAdded: true,
+  });
+  ['ntName','ntInterval','ntNextDate','ntNotes'].forEach(id => document.getElementById(id).value = '');
+  toggleAddTask();
+  saveState();
+  renderDashboard();
+  showToast('✓ Task added');
+}
+
+function handleBoatPhoto(event) {
+  const file = event.target.files[0];
+  if (!file || !file.type.startsWith('image/')) return;
+  const r = new FileReader();
+  r.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      // Compress to max 800px wide and 70% quality to fit localStorage
+      const canvas = document.createElement('canvas');
+      const maxW = 800;
+      const scale = Math.min(1, maxW / img.width);
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      document.getElementById('boatPhotoImg').src = dataUrl;
+      document.getElementById('boatPhotoImg').style.display = 'block';
+      document.getElementById('boatPhotoPlaceholder').style.display = 'none';
+      document.getElementById('boatPhotoOverlay').style.display = 'block';
+      try {
+        localStorage.setItem(STORAGE_KEY + '_boatphoto', dataUrl);
+        showToast('✓ Boat photo saved');
+      } catch(e) {
+        showToast('Photo too large to save — try a smaller image');
+      }
+    };
+    img.src = e.target.result;
+  };
+  r.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function loadBoatPhoto() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY + '_boatphoto');
+    if (saved) {
+      document.getElementById('boatPhotoImg').src = saved;
+      document.getElementById('boatPhotoImg').style.display = 'block';
+      document.getElementById('boatPhotoPlaceholder').style.display = 'none';
+      document.getElementById('boatPhotoOverlay').style.display = 'block';
+    }
+    const pos = localStorage.getItem(STORAGE_KEY + '_photopos') || 'center';
+    applyPhotoPos(pos);
+  } catch(e) {}
+}
+
+function setPhotoPos(pos) {
+  applyPhotoPos(pos);
+  try { localStorage.setItem(STORAGE_KEY + '_photopos', pos); } catch(e) {}
+}
+
+function applyPhotoPos(pos) {
+  const img = document.getElementById('boatPhotoImg');
+  if (img) img.style.objectPosition = pos;
+  ['posTop','posMid','posBottom'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+  const map = { top: 'posTop', center: 'posMid', bottom: 'posBottom' };
+  const active = document.getElementById(map[pos]);
+  if (active) active.classList.add('active');
+  // Show controls briefly then hide on mobile
+  const wrap = document.getElementById('boatPhotoWrap');
+  if (wrap) {
+    wrap.classList.add('show-controls');
+    clearTimeout(wrap._hideTimer);
+    wrap._hideTimer = setTimeout(() => wrap.classList.remove('show-controls'), 2000);
+  }
+}
+
+function adjustPartStock(idx, delta) {
+  const item = inventory[idx];
+  if (!item) return;
+  const current = item.stock !== null ? item.stock : 0;
+  item.stock = Math.max(0, current + delta);
+  saveState();
+  renderInventory();
+  showToast(`${item.name}: ${item.stock} in stock`);
+}
+
+function buildTaskDropdown(names) {
+  const dd = document.getElementById('taskDropdown');
+  if (!dd) return;
+  dd.innerHTML = names.map(n =>
+    `<div style="padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.06);color:var(--text);"
+      onmousedown="selectTask('${n}')"
+      ontouchstart="selectTask('${n}')">${n}</div>`
+  ).join('');
+}
+
+function filterTaskList(val) {
+  const names = (window._allTaskNames || []).filter(n => n.toLowerCase().includes(val.toLowerCase()));
+  buildTaskDropdown(names);
+  showTaskDropdown();
+}
+
+function showTaskDropdown() {
+  const dd = document.getElementById('taskDropdown');
+  if (dd && dd.innerHTML) dd.style.display = 'block';
+}
+
+function hideTaskDropdown() {
+  const dd = document.getElementById('taskDropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+function selectTask(name) {
+  document.getElementById('fTask').value = name;
+  hideTaskDropdown();
+}
+
+function toggleEditPart(idx) {
+  const form = document.getElementById('inv-edit-' + idx);
+  if (form) form.classList.toggle('open');
+}
+
+function saveEditPart(idx) {
+  const item = inventory[idx];
+  if (!item) return;
+  const name = document.getElementById('ei-name-' + idx).value.trim();
+  if (!name) { showToast('Part name required'); return; }
+  item.name    = name;
+  item.cat     = document.getElementById('ei-cat-'   + idx).value.trim() || item.cat;
+  item.partNum = document.getElementById('ei-pnum-'  + idx).value.trim() || null;
+  item.vendor  = document.getElementById('ei-vendor-'+ idx).value.trim() || null;
+  item.notes   = document.getElementById('ei-notes-' + idx).value.trim() || '';
+  saveState();
+  renderInventory();
+  showToast('✓ Part updated');
+}
+
+function deletePart(idx) {
+  const item = inventory[idx];
+  if (!item) return;
+  if (!confirm(`Delete "${item.name}" from inventory?`)) return;
+  inventory.splice(idx, 1);
+  saveState();
+  renderInventory();
+  showToast('Part removed');
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg; toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function formatDate(d) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${String(d.getDate()).padStart(2,'0')}-${months[d.getMonth()]}-${d.getFullYear()}`;
+}
+
+function calcNextDate(fromDateStr, freq) {
+  const d = parseDate(fromDateStr);
+  if (!d || !freq) return null;
+  const f = freq.toLowerCase();
+  const nd = new Date(d);
+  if (f.includes('3 month') || f.includes('quarterly')) nd.setMonth(nd.getMonth() + 3);
+  else if (f.includes('6 month') || f.includes('half')) nd.setMonth(nd.getMonth() + 6);
+  else if (f.includes('24 month'))                       nd.setFullYear(nd.getFullYear() + 2);
+  else if (f.includes('2 year'))                         nd.setFullYear(nd.getFullYear() + 2);
+  else if (f.includes('3 year'))                         nd.setFullYear(nd.getFullYear() + 3);
+  else if (f.includes('4 year'))                         nd.setFullYear(nd.getFullYear() + 4);
+  else if (f.includes('5 year'))                         nd.setFullYear(nd.getFullYear() + 5);
+  else if (f.includes('annual') || f.includes('yearly') || f === '1 year') nd.setFullYear(nd.getFullYear() + 1);
+  else return null;
+  return formatDate(nd);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PHOTO NOTES
+// ═══════════════════════════════════════════════════════════════════
+function handlePhotoSelect(event) {
+  Array.from(event.target.files).forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => { pendingPhotos.push({ dataUrl: e.target.result, name: file.name }); renderPhotoPreviews(); };
+    reader.readAsDataURL(file);
+  });
+  event.target.value = '';
+}
+
+function renderPhotoPreviews() {
+  let html = '';
+  pendingPhotos.forEach((p, i) => {
+    html += `<div class="photo-thumb-wrap"><img src="${p.dataUrl}" alt="Photo ${i+1}" onclick="openPendingViewer(${i})"><button class="photo-thumb-del" onclick="removePhoto(${i})">✕</button></div>`;
+  });
+  document.getElementById('photoPreviews').innerHTML = html;
+  const label = document.querySelector('.photo-upload-label');
+  label.innerHTML = pendingPhotos.length ? `<span>${pendingPhotos.length} photo${pendingPhotos.length>1?'s':''} added</span> · tap to add more` : `Tap to take photo or <span>choose from library</span>`;
+}
+
+function removePhoto(idx) { pendingPhotos.splice(idx, 1); renderPhotoPreviews(); }
+
+let viewerPhotos = [], viewerIdx = 0;
+
+function openViewer(entryIdx, photoIdx, event) {
+  event && event.stopPropagation();
+  const entry = (window._logEntries || [])[entryIdx];
+  if (!entry || !entry.photos || !entry.photos.length) return;
+  viewerPhotos = entry.photos; viewerIdx = photoIdx;
+  showViewerAt(viewerIdx); document.getElementById('photoViewer').classList.add('open');
+}
+
+function openPendingViewer(idx) {
+  viewerPhotos = pendingPhotos; viewerIdx = idx;
+  showViewerAt(viewerIdx); document.getElementById('photoViewer').classList.add('open');
+}
+
+function showViewerAt(idx) {
+  viewerIdx = Math.max(0, Math.min(idx, viewerPhotos.length - 1));
+  document.getElementById('viewerImg').src = viewerPhotos[viewerIdx].dataUrl;
+  document.getElementById('viewerTitle').textContent = `Photo ${viewerIdx+1} of ${viewerPhotos.length}`;
+  let dots = '';
+  viewerPhotos.forEach((_, i) => { dots += `<div class="photo-nav-dot ${i===viewerIdx?'active':''}" onclick="showViewerAt(${i})"></div>`; });
+  document.getElementById('viewerDots').innerHTML = dots;
+  document.getElementById('arrowPrev').style.visibility = viewerIdx > 0 ? 'visible' : 'hidden';
+  document.getElementById('arrowNext').style.visibility = viewerIdx < viewerPhotos.length-1 ? 'visible' : 'hidden';
+}
+
+function viewerNav(dir) { showViewerAt(viewerIdx + dir); }
+function closeViewer() { document.getElementById('photoViewer').classList.remove('open'); }
+
+let touchStartX = 0;
+document.addEventListener('touchstart', e => {
+  if (document.getElementById('photoViewer').classList.contains('open')) touchStartX = e.touches[0].clientX;
+});
+document.addEventListener('touchend', e => {
+  if (!document.getElementById('photoViewer').classList.contains('open')) return;
+  const diff = touchStartX - e.changedTouches[0].clientX;
+  if (Math.abs(diff) > 50) viewerNav(diff > 0 ? 1 : -1);
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
+function init() {
+  const now = new Date();
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('headerDate').textContent = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  loadState();
+  loadBoatPhoto();
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TRIP LOG  —  record voyages; hour readings feed engine hours & maintenance
+// ═══════════════════════════════════════════════════════════════════
+(function(){
+  const css = `
+  .trip-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+  .trip-stat{background:var(--hull);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);padding:11px 8px;text-align:center;}
+  .trip-stat .n{font-family:'Archivo Black',sans-serif;font-size:20px;color:var(--foam);line-height:1;}
+  .trip-stat .l{font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-dim);margin-top:4px;font-family:'JetBrains Mono',monospace;}
+  .trip-card{background:var(--hull);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);padding:13px 14px;margin-bottom:10px;position:relative;cursor:pointer;transition:border-color .15s;}
+  .trip-card:hover{border-color:rgba(200,146,42,0.4);}
+  .tc-date{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;color:var(--brass);}
+  .tc-route{display:flex;align-items:center;gap:8px;margin:6px 0 9px;padding-right:44px;}
+  .tc-pt{font-weight:700;font-size:15.5px;color:var(--foam);}
+  .tc-arrow{color:var(--text-dim);flex:0 0 auto;}
+  .tc-meta{display:flex;flex-wrap:wrap;gap:6px;}
+  .tc-chip{font-size:11.5px;color:var(--foam);background:rgba(255,255,255,0.06);border-radius:7px;padding:3px 9px;font-family:'JetBrains Mono',monospace;}
+  .tc-chip.hrs{background:var(--green-bg);color:var(--green);}
+  .tc-note{font-size:12.5px;color:var(--text-dim);margin-top:9px;line-height:1.5;}
+  .tc-actions{position:absolute;top:11px;right:11px;display:flex;gap:6px;}
+  .tc-btn{width:24px;height:24px;border-radius:6px;border:none;background:rgba(255,255,255,0.06);color:var(--text-dim);font-size:12px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;}
+  .tc-btn.edit:hover{background:rgba(200,146,42,0.18);color:var(--brass-lt);}
+  .tc-btn.del:hover{background:var(--red-bg);color:var(--red);}
+  `;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
+})();
+
+let editingTripId = null;
+
+function tripFmtDate(iso){
+  if(!iso) return '';
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const p = iso.split('-');
+  if(p.length!==3) return iso;
+  const dt = new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  return days[dt.getDay()]+' '+parseInt(p[2])+' '+months[parseInt(p[1])-1]+' '+p[0];
+}
+function tripTodayIso(){ const t=new Date(); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
+function tripFmtDateShort(iso){
+  if(!iso) return '';
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const p=iso.split('-'); if(p.length!==3) return iso;
+  return parseInt(p[2])+' '+months[parseInt(p[1])-1]+' '+p[0];
+}
+function tripDateChanged(){
+  const el=document.getElementById('tripDate'), hint=document.getElementById('tripDateHint');
+  if(!el||!hint) return;
+  if(el.value){ hint.textContent='📅 '+tripFmtDateShort(el.value); hint.style.color='var(--wake)'; }
+  else { hint.textContent='Leave blank to log as today ('+tripFmtDateShort(tripTodayIso())+')'; hint.style.color='var(--text-dim)'; }
+}
+
+function renderTrips(){
+  const list = document.getElementById('tripList');
+  const sum  = document.getElementById('tripSummary');
+  if(!list) return;
+  const trips = (state.trips||[]).slice().sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+
+  if(!trips.length){
+    if(sum) sum.innerHTML='';
+    list.innerHTML = '<div class="empty"><div class="empty-icon">🧭</div><div class="empty-text">No trips logged yet.<br>Tap <b>＋ Log a Trip</b> to record your first voyage.</div></div>';
+    return;
+  }
+
+  let miles=0, under=0;
+  trips.forEach(t=>{ miles += (parseFloat(t.distance)||0); under += (parseFloat(t.underway)||0); });
+  if(sum){
+    sum.innerHTML =
+      '<div class="trip-summary">'+
+        '<div class="trip-stat"><div class="n">'+Math.round(miles)+'</div><div class="l">nm total</div></div>'+
+        '<div class="trip-stat"><div class="n">'+Math.round(under)+'</div><div class="l">hrs underway</div></div>'+
+        '<div class="trip-stat"><div class="n">'+trips.length+'</div><div class="l">trips</div></div>'+
+      '</div>';
+  }
+
+  list.innerHTML = trips.map(t=>{
+    const chips=[];
+    if(t.distance) chips.push('<span class="tc-chip">'+wzEsc(t.distance)+' nm</span>');
+    if(t.underway) chips.push('<span class="tc-chip">'+wzEsc(t.underway)+' hrs</span>');
+    if(t.hoursAdded>0) chips.push('<span class="tc-chip hrs">+'+t.hoursAdded+' engine hrs</span>');
+    return '<div class="trip-card" onclick="openTripForm(\''+t.id+'\')">'+
+      '<div class="tc-actions">'+
+        '<button class="tc-btn edit" onclick="event.stopPropagation();openTripForm(\''+t.id+'\')" title="Edit">✎</button>'+
+        '<button class="tc-btn del" onclick="event.stopPropagation();deleteTrip(\''+t.id+'\')" title="Delete">✕</button>'+
+      '</div>'+
+      '<div class="tc-date">'+tripFmtDate(t.date)+'</div>'+
+      '<div class="tc-route"><span class="tc-pt">'+wzEsc(t.from||'—')+'</span><span class="tc-arrow">→</span><span class="tc-pt">'+wzEsc(t.to||'—')+'</span></div>'+
+      (chips.length?'<div class="tc-meta">'+chips.join('')+'</div>':'')+
+      (t.notes?'<div class="tc-note">'+wzEsc(t.notes)+'</div>':'')+
+    '</div>';
+  }).join('');
+}
+
+function buildTripOverlay(){
+  if(document.getElementById('tripOverlay')) return;
+  const v = getVessel() || {};
+  const single = v.engine === 'single';
+  const hoursFields = single
+    ? '<div class="form-row"><label class="form-label">Engine hours now</label><input type="number" class="form-input" id="tripEng" placeholder="current reading"></div>'
+    : '<div class="form-row-2">'+
+        '<div><label class="form-label">Port hrs now</label><input type="number" class="form-input" id="tripPort" placeholder="current reading"></div>'+
+        '<div><label class="form-label">Stbd hrs now</label><input type="number" class="form-input" id="tripStbd" placeholder="current reading"></div>'+
+      '</div>';
+
+  const html =
+  '<div class="log-panel" id="tripPanel">'+
+    '<div class="log-handle"></div>'+
+    '<div class="log-title" id="tripFormTitle">Log a Trip</div>'+
+    '<div class="log-subtitle">Record a voyage — and update your engine hours in one go.</div>'+
+    '<div class="form-row-2">'+
+      '<div><label class="form-label">Date</label><input type="date" class="form-input" id="tripDate" oninput="tripDateChanged()"><div id="tripDateHint" style="font-size:11px;margin-top:5px;color:var(--text-dim);"></div></div>'+
+      '<div><label class="form-label">Distance (nm)</label><input type="number" class="form-input" id="tripDist" placeholder="optional"></div>'+
+    '</div>'+
+    '<div class="form-row-2">'+
+      '<div><label class="form-label">From</label><input type="text" class="form-input" id="tripFrom" placeholder="e.g. Pine Harbour"></div>'+
+      '<div><label class="form-label">To</label><input type="text" class="form-input" id="tripTo" placeholder="e.g. Waiheke"></div>'+
+    '</div>'+
+    '<div class="form-row"><label class="form-label">Hours underway</label><input type="number" class="form-input" id="tripUnder" placeholder="optional — e.g. 6"></div>'+
+    '<div id="tripHoursGroup">'+hoursFields+'</div>'+
+    '<div class="form-row" id="tripHoursNote" style="display:none;"><label class="form-label">Engine hours at this trip</label><div class="form-input" id="tripHoursNoteVal" style="opacity:.7;"></div><div style="font-size:11px;color:var(--text-dim);margin-top:6px;line-height:1.5;">Your engine hours track the meter and only move forward, so they aren\'t changed when editing a past trip.</div></div>'+
+    '<div class="form-row"><label class="form-label">Notes</label><textarea class="form-input" id="tripNotes" placeholder="Weather, crew, anchorage…"></textarea></div>'+
+    '<div style="display:flex;gap:8px;margin-top:4px;">'+
+      '<button class="log-submit-btn" id="tripSubmitBtn" onclick="submitTrip()" style="flex:1;">Save Trip</button>'+
+      '<button class="log-submit-btn" onclick="closeTripForm()" style="flex:1;background:var(--hull);border:1px solid rgba(255,255,255,0.2);">Cancel</button>'+
+    '</div>'+
+  '</div>';
+
+  const ov = document.createElement('div');
+  ov.className = 'log-overlay';
+  ov.id = 'tripOverlay';
+  ov.setAttribute('onclick','tripOverlayClick(event)');
+  ov.innerHTML = html;
+  document.body.appendChild(ov);
+}
+
+function openTripForm(id){
+  buildTripOverlay();
+  const v = getVessel() || {};
+  const single = v.engine === 'single';
+  const get = i => document.getElementById(i);
+  const trip = id ? (state.trips||[]).find(t=>t.id===id) : null;
+
+  if(trip){
+    // EDIT mode — descriptive fields only; engine hours locked
+    editingTripId = id;
+    get('tripFormTitle').textContent = 'Edit Trip';
+    get('tripSubmitBtn').textContent = 'Update Trip';
+    get('tripDate').value  = trip.date || tripTodayIso();
+    get('tripFrom').value  = trip.from || '';
+    get('tripTo').value    = trip.to || '';
+    get('tripDist').value  = (trip.distance!=null ? trip.distance : '');
+    get('tripUnder').value = (trip.underway!=null ? trip.underway : '');
+    get('tripNotes').value = trip.notes || '';
+    get('tripHoursGroup').style.display = 'none';
+    get('tripHoursNote').style.display = 'block';
+    get('tripHoursNoteVal').textContent = single
+      ? (trip.portReading!=null ? trip.portReading+' hrs' : '—')
+      : ((trip.portReading!=null?trip.portReading:'—')+' / '+(trip.stbdReading!=null?trip.stbdReading:'—')+' hrs');
+  } else {
+    // NEW mode
+    editingTripId = null;
+    get('tripFormTitle').textContent = 'Log a Trip';
+    get('tripSubmitBtn').textContent = 'Save Trip';
+    get('tripHoursGroup').style.display = 'block';
+    get('tripHoursNote').style.display = 'none';
+    get('tripDate').value  = '';
+    get('tripFrom').value  = v.homePort || '';
+    get('tripTo').value    = '';
+    get('tripDist').value  = '';
+    get('tripUnder').value = '';
+    get('tripNotes').value = '';
+    if(single){ const e=get('tripEng'); if(e){ e.value=''; e.placeholder='now '+(state.stbdHrs||state.portHrs||0);} }
+    else{
+      const p=get('tripPort'), s=get('tripStbd');
+      if(p){ p.value=''; p.placeholder='now '+(state.portHrs||0);}
+      if(s){ s.value=''; s.placeholder='now '+(state.stbdHrs||0);}
+    }
+  }
+  tripDateChanged();
+  get('tripOverlay').classList.add('open');
+}
+
+function closeTripForm(){
+  const ov=document.getElementById('tripOverlay');
+  if(ov) ov.classList.remove('open');
+  editingTripId = null;
+}
+function tripOverlayClick(e){ if(e.target && e.target.id==='tripOverlay') closeTripForm(); }
+
+function submitTrip(){
+  const val = id => { const el=document.getElementById(id); return el ? el.value.trim() : ''; };
+  const num = id => { const n=parseInt(val(id),10); return isNaN(n)?null:n; };
+
+  // EDIT: update descriptive fields, leave engine hours untouched
+  if(editingTripId){
+    const trip = (state.trips||[]).find(t=>t.id===editingTripId);
+    if(trip){
+      trip.date = val('tripDate') || trip.date;
+      trip.from = val('tripFrom');
+      trip.to = val('tripTo');
+      trip.distance = num('tripDist');
+      trip.underway = num('tripUnder');
+      trip.notes = val('tripNotes');
+    }
+    saveState();
+    renderTrips();
+    closeTripForm();
+    showToast('Trip updated');
+    return;
+  }
+
+  // NEW: create trip and roll engine hours forward
+  const v = getVessel() || {};
+  const single = v.engine === 'single';
+  const oldPort = state.portHrs||0, oldStbd = state.stbdHrs||0;
+  let newPort = oldPort, newStbd = oldStbd;
+  if(single){
+    const r = num('tripEng');
+    if(r!==null){ newPort = Math.max(oldPort, r); newStbd = Math.max(oldStbd, r); }
+  } else {
+    const rp = num('tripPort'), rs = num('tripStbd');
+    if(rp!==null) newPort = Math.max(oldPort, rp);
+    if(rs!==null) newStbd = Math.max(oldStbd, rs);
+  }
+  const hoursChanged = (newPort!==oldPort) || (newStbd!==oldStbd);
+  const hoursAdded = Math.max(newPort-oldPort, newStbd-oldStbd, 0);
+
+  const trip = {
+    id: 't'+Date.now(),
+    date: val('tripDate') || tripTodayIso(),
+    from: val('tripFrom'),
+    to: val('tripTo'),
+    distance: num('tripDist'),
+    underway: num('tripUnder'),
+    portReading: newPort,
+    stbdReading: newStbd,
+    hoursAdded: hoursAdded,
+    notes: val('tripNotes')
+  };
+  if(!state.trips) state.trips = [];
+  state.trips.push(trip);
+
+  if(hoursChanged){
+    const pEl=document.getElementById('portHrs'), sEl=document.getElementById('stbdHrs');
+    if(pEl) pEl.value = newPort;
+    if(sEl) sEl.value = newStbd;
+    updateHours(); // cascades: state, dashboard, engine countdowns, save
+  }
+  saveState();
+  renderTrips();
+  closeTripForm();
+
+  if(hoursChanged){
+    const hrsTxt = single ? (newPort+' hrs') : (newPort+' / '+newStbd+' hrs');
+    showToast('Trip saved — engine hours now '+hrsTxt);
+  } else {
+    showToast('Trip saved to your logbook');
+  }
+}
+
+function deleteTrip(id){
+  if(!confirm('Delete this trip?')) return;
+  state.trips = (state.trips||[]).filter(t=>t.id!==id);
+  saveState();
+  renderTrips();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FIRST-RUN SETUP WIZARD  —  self-service onboarding
+// Added for the self-service edition. Shows once, on first open, then
+// personalises the app (name, model, engines, hours, home port).
+// ═══════════════════════════════════════════════════════════════════
+const VESSEL_KEY = STORAGE_KEY + '_vessel';
+let wzStep = 0;
+const wzData = { engine: null };
+
+function wzEsc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function wzVal(id){ const el=document.getElementById(id); return el ? el.value.trim() : ''; }
+function wzNum(id){ const n=parseInt(wzVal(id),10); return isNaN(n)?0:n; }
+function getVessel(){ try { return JSON.parse(localStorage.getItem(VESSEL_KEY)); } catch(e){ return null; } }
+
+function wzHideDemoBanner(){
+  document.querySelectorAll('div').forEach(d=>{
+    if(d.children.length===0 && /DEMO\s+—\s+This is a template preview/.test(d.textContent)) d.style.display='none';
+  });
+}
+
+function applyVessel(v){
+  if(!v) return;
+  const nameEl = document.querySelector('.vessel-name');
+  if(nameEl){
+    nameEl.innerHTML = '⚓ ' + wzEsc(v.name || 'Vessel Log');
+    let sub = document.getElementById('vesselSubtitle');
+    if(!sub){
+      sub = document.createElement('div');
+      sub.id = 'vesselSubtitle';
+      sub.style.cssText = "font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-top:2px;letter-spacing:0.03em;";
+      nameEl.insertAdjacentElement('afterend', sub);
+    }
+    const bits=[]; if(v.year) bits.push(v.year); if(v.model) bits.push(v.model);
+    let line = bits.join(' ');
+    if(v.homePort) line += (line ? '  ·  ' : '') + v.homePort;
+    sub.textContent = line;
+  }
+  if(v.engine === 'single'){
+    document.body.classList.add('single-engine');
+    const pills = document.querySelectorAll('.hours-pill');
+    if(pills[1]) pills[1].style.display = 'none';
+    const lbl = document.querySelector('.hours-pill .hours-pill-label');
+    if(lbl) lbl.textContent = 'ENGINE HRS';
+  }
+  wzHideDemoBanner();
+}
+
+function buildWizard(){
+  wzHideDemoBanner();
+  const css = `
+  #wzOverlay{position:fixed;inset:0;z-index:99999;background:linear-gradient(180deg,var(--ocean),var(--deep));display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Archivo',sans-serif;}
+  #wzCard{width:100%;max-width:440px;background:var(--hull);border:1px solid rgba(77,184,212,0.15);border-radius:var(--radius-lg);box-shadow:0 24px 60px -20px rgba(0,0,0,0.6);overflow:hidden;}
+  .wz-top{background:linear-gradient(180deg,var(--deep),var(--hull));padding:18px 22px 16px;border-bottom:1px solid rgba(200,146,42,0.25);}
+  .wz-brand{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--brass-lt);}
+  .wz-prog{display:flex;gap:6px;margin-top:14px;}
+  .wz-seg{flex:1;height:4px;border-radius:99px;background:rgba(255,255,255,0.12);overflow:hidden;}
+  .wz-seg > i{display:block;height:100%;width:0;background:var(--brass);transition:width .35s;}
+  .wz-body{padding:26px 24px 24px;min-height:344px;display:flex;flex-direction:column;}
+  .wz-step{display:none;flex:1;flex-direction:column;}
+  .wz-step.on{display:flex;animation:wzrise .4s ease;}
+  @keyframes wzrise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  .wz-eyebrow{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--brass);margin-bottom:10px;}
+  .wz-h{font-family:'Archivo Black',sans-serif;font-size:25px;line-height:1.15;color:var(--foam);}
+  .wz-h em{color:var(--brass-lt);font-style:italic;}
+  .wz-lede{color:var(--text-dim);font-size:14px;line-height:1.55;margin-top:10px;}
+  .wz-field{display:block;margin-top:18px;}
+  .wz-lab{font-size:12.5px;font-weight:600;color:var(--foam);display:block;margin-bottom:7px;}
+  .wz-lab small{color:var(--text-dim);font-weight:400;}
+  .wz-input{width:100%;font-family:'Archivo',sans-serif;font-size:16px;color:var(--foam);background:var(--ocean);border:1.5px solid var(--steel);border-radius:10px;padding:12px 13px;outline:none;transition:.15s;-webkit-appearance:none;}
+  .wz-input::placeholder{color:#5a7488;}
+  .wz-input:focus{border-color:var(--brass);box-shadow:0 0 0 3px rgba(200,146,42,0.15);}
+  .wz-two{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+  .wz-engines{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;}
+  .wz-eng{cursor:pointer;background:var(--ocean);border:1.5px solid var(--steel);border-radius:14px;padding:18px 12px 14px;text-align:center;transition:.15s;position:relative;}
+  .wz-eng:hover{border-color:var(--brass);}
+  .wz-eng.sel{border-color:var(--brass);background:rgba(200,146,42,0.10);box-shadow:0 0 0 3px rgba(200,146,42,0.12);}
+  .wz-eng .wz-ic{font-size:24px;margin-bottom:8px;letter-spacing:-2px;}
+  .wz-eng .wz-tt{font-weight:700;font-size:15px;color:var(--foam);}
+  .wz-eng .wz-ss{font-size:11px;color:var(--text-dim);margin-top:3px;font-family:'JetBrains Mono',monospace;letter-spacing:0.08em;}
+  .wz-eng .wz-tick{position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:99px;background:var(--brass);color:#0a1628;font-size:12px;font-weight:700;display:none;align-items:center;justify-content:center;}
+  .wz-eng.sel .wz-tick{display:flex;}
+  .wz-spacer{flex:1;min-height:16px;}
+  .wz-actions{display:flex;gap:10px;align-items:center;margin-top:22px;}
+  .wz-btn{font-family:'Archivo',sans-serif;font-weight:700;font-size:15px;cursor:pointer;border:none;border-radius:11px;padding:13px 18px;transition:.15s;}
+  .wz-primary{background:linear-gradient(180deg,var(--brass-lt),var(--brass));color:#221806;flex:1;}
+  .wz-primary:disabled{opacity:.4;cursor:not-allowed;}
+  .wz-ghost{background:none;color:var(--text-dim);padding:13px 6px;}
+  .wz-ghost:hover{color:var(--foam);}
+  .wz-plate{margin-top:18px;background:var(--ocean);border:1.5px solid var(--steel);border-radius:14px;overflow:hidden;}
+  .wz-plate-h{background:var(--deep);padding:13px 16px;display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid rgba(200,146,42,0.2);}
+  .wz-plate-name{font-family:'Archivo Black',sans-serif;font-size:18px;color:var(--foam);}
+  .wz-plate-tag{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--brass-lt);}
+  .wz-row{display:flex;justify-content:space-between;padding:9px 16px;font-size:13.5px;border-bottom:1px solid rgba(255,255,255,0.05);}
+  .wz-row:last-child{border-bottom:none;}
+  .wz-k{color:var(--text-dim);}
+  .wz-v{color:var(--foam);font-weight:600;text-align:right;}
+  .wz-badge{width:52px;height:52px;border-radius:99px;margin:0 auto 6px;background:radial-gradient(circle at 40% 35%,var(--brass-lt),var(--brass));display:flex;align-items:center;justify-content:center;font-size:26px;color:#0a1628;}
+  `;
+  const style = document.createElement('style');
+  style.textContent = css;
+  document.head.appendChild(style);
+
+  const html =
+  '<div id="wzCard">'+
+    '<div class="wz-top"><div class="wz-brand">⚓ My Vessel Log</div><div class="wz-prog" id="wzProg"></div></div>'+
+    '<div class="wz-body">'+
+      '<div class="wz-step on" data-s="0">'+
+        '<div class="wz-eyebrow">First-time setup</div>'+
+        '<div class="wz-h">Welcome <em>aboard</em></div>'+
+        '<div class="wz-lede">Let\'s set up your logbook. It takes about a minute, and you can change any of this later.</div>'+
+        '<div class="wz-spacer"></div>'+
+        '<div class="wz-actions"><button class="wz-btn wz-primary" onclick="wzNext()">Get started</button></div>'+
+      '</div>'+
+      '<div class="wz-step" data-s="1">'+
+        '<div class="wz-eyebrow">Your vessel</div><div class="wz-h">What\'s she called?</div>'+
+        '<label class="wz-field"><span class="wz-lab">Boat name</span><input class="wz-input" id="wzName" placeholder="e.g. Second Wind" oninput="wzValidate()"></label>'+
+        '<div class="wz-spacer"></div>'+
+        '<div class="wz-actions"><button class="wz-btn wz-ghost" onclick="wzBack()">Back</button><button class="wz-btn wz-primary" id="wzN1" onclick="wzNext()" disabled>Next</button></div>'+
+      '</div>'+
+      '<div class="wz-step" data-s="2">'+
+        '<div class="wz-eyebrow">Your vessel</div><div class="wz-h">Tell us about her</div>'+
+        '<div class="wz-two">'+
+          '<label class="wz-field"><span class="wz-lab">Year</span><input class="wz-input" id="wzYear" placeholder="1974" inputmode="numeric"></label>'+
+          '<label class="wz-field"><span class="wz-lab">Make &amp; model</span><input class="wz-input" id="wzModel" placeholder="Grand Banks 42"></label>'+
+        '</div>'+
+        '<div class="wz-spacer"></div>'+
+        '<div class="wz-actions"><button class="wz-btn wz-ghost" onclick="wzBack()">Back</button><button class="wz-btn wz-primary" onclick="wzNext()">Next</button></div>'+
+      '</div>'+
+      '<div class="wz-step" data-s="3">'+
+        '<div class="wz-eyebrow">Power</div><div class="wz-h">How many engines?</div>'+
+        '<div class="wz-lede">This tells the log whether to track one set of hours or two.</div>'+
+        '<div class="wz-engines">'+
+          '<div class="wz-eng" id="wzEngS" onclick="wzPick(\'single\')"><div class="wz-tick">✓</div><div class="wz-ic">⚙️</div><div class="wz-tt">One engine</div><div class="wz-ss">SINGLE</div></div>'+
+          '<div class="wz-eng" id="wzEngT" onclick="wzPick(\'twin\')"><div class="wz-tick">✓</div><div class="wz-ic">⚙️⚙️</div><div class="wz-tt">Two engines</div><div class="wz-ss">TWIN</div></div>'+
+        '</div>'+
+        '<div class="wz-spacer"></div>'+
+        '<div class="wz-actions"><button class="wz-btn wz-ghost" onclick="wzBack()">Back</button><button class="wz-btn wz-primary" id="wzN3" onclick="wzNext()" disabled>Next</button></div>'+
+      '</div>'+
+      '<div class="wz-step" data-s="4">'+
+        '<div class="wz-eyebrow">Power</div><div class="wz-h">Current engine hours</div>'+
+        '<div class="wz-lede">Check your hour meter — usually on the dashboard or the engine gauge.</div>'+
+        '<div id="wzHrsSingle"><label class="wz-field"><span class="wz-lab">Engine hours</span><input class="wz-input" id="wzHrs1" placeholder="0" inputmode="numeric"></label></div>'+
+        '<div id="wzHrsTwin" style="display:none;"><div class="wz-two">'+
+          '<label class="wz-field"><span class="wz-lab">Port engine</span><input class="wz-input" id="wzHrsP" placeholder="0" inputmode="numeric"></label>'+
+          '<label class="wz-field"><span class="wz-lab">Starboard engine</span><input class="wz-input" id="wzHrsS" placeholder="0" inputmode="numeric"></label>'+
+        '</div></div>'+
+        '<div class="wz-spacer"></div>'+
+        '<div class="wz-actions"><button class="wz-btn wz-ghost" onclick="wzBack()">Back</button><button class="wz-btn wz-primary" onclick="wzNext()">Next</button></div>'+
+      '</div>'+
+      '<div class="wz-step" data-s="5">'+
+        '<div class="wz-eyebrow">Almost there</div><div class="wz-h">Where\'s home?</div>'+
+        '<label class="wz-field"><span class="wz-lab">Home port</span><input class="wz-input" id="wzPort" placeholder="e.g. Pine Harbour, Auckland"></label>'+
+        '<div class="wz-spacer"></div>'+
+        '<div class="wz-actions"><button class="wz-btn wz-ghost" onclick="wzBack()">Back</button><button class="wz-btn wz-primary" onclick="wzFinish()">Finish setup</button></div>'+
+      '</div>'+
+      '<div class="wz-step" data-s="6">'+
+        '<div style="text-align:center;"><div class="wz-badge">✓</div><div class="wz-eyebrow" style="margin-top:10px;">Logbook ready</div><div class="wz-h">You\'re all set</div></div>'+
+        '<div class="wz-plate" id="wzPlate"></div>'+
+        '<div class="wz-spacer"></div>'+
+        '<div class="wz-actions"><button class="wz-btn wz-primary" onclick="wzOpen()">Open my logbook</button></div>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+
+  const ov = document.createElement('div');
+  ov.id = 'wzOverlay';
+  ov.innerHTML = html;
+  document.body.appendChild(ov);
+
+  const prog = document.getElementById('wzProg');
+  for(let i=0;i<6;i++){ const s=document.createElement('div'); s.className='wz-seg'; s.innerHTML='<i></i>'; prog.appendChild(s); }
+  wzShow(0);
+}
+
+function wzShow(n){
+  wzStep = n;
+  document.querySelectorAll('#wzOverlay .wz-step').forEach(el=>el.classList.toggle('on', parseInt(el.dataset.s,10)===n));
+  if(n===4){
+    const twin = wzData.engine==='twin';
+    document.getElementById('wzHrsSingle').style.display = twin ? 'none' : 'block';
+    document.getElementById('wzHrsTwin').style.display   = twin ? 'block' : 'none';
+  }
+  const segs = document.querySelectorAll('#wzProg .wz-seg > i');
+  segs.forEach((i,idx)=>{ i.style.width = (idx < n) ? '100%' : (idx===n ? '50%' : '0'); });
+}
+function wzNext(){ if(wzStep<6) wzShow(wzStep+1); }
+function wzBack(){ if(wzStep>0) wzShow(wzStep-1); }
+function wzValidate(){ document.getElementById('wzN1').disabled = !document.getElementById('wzName').value.trim(); }
+function wzPick(k){
+  wzData.engine = k;
+  document.getElementById('wzEngS').classList.toggle('sel', k==='single');
+  document.getElementById('wzEngT').classList.toggle('sel', k==='twin');
+  document.getElementById('wzN3').disabled = false;
+}
+
+function wzFinish(){
+  const twin = wzData.engine==='twin';
+  const v = {
+    name: wzVal('wzName') || 'My Boat',
+    year: wzVal('wzYear'),
+    model: wzVal('wzModel'),
+    engine: wzData.engine || 'twin',
+    homePort: wzVal('wzPort'),
+    portHrs: twin ? wzNum('wzHrsP') : wzNum('wzHrs1'),
+    stbdHrs: twin ? wzNum('wzHrsS') : wzNum('wzHrs1'),
+    createdAt: new Date().toISOString()
+  };
+  try { localStorage.setItem(VESSEL_KEY, JSON.stringify(v)); } catch(e){}
+  // seed engine hours into the persistent store so the app loads them
+  try {
+    let pd = {};
+    try { pd = JSON.parse(localStorage.getItem(STORAGE_KEY+'_persist')) || {}; } catch(e){}
+    pd.portHrs = v.portHrs; pd.stbdHrs = v.stbdHrs;
+    localStorage.setItem(STORAGE_KEY+'_persist', JSON.stringify(pd));
+  } catch(e){}
+
+  const bits=[]; if(v.year) bits.push(v.year); if(v.model) bits.push(v.model);
+  const hrs = twin ? (v.portHrs+' / '+v.stbdHrs+' hrs') : (v.portHrs+' hrs');
+  document.getElementById('wzPlate').innerHTML =
+    '<div class="wz-plate-h"><span class="wz-plate-name">'+wzEsc(v.name)+'</span><span class="wz-plate-tag">Logbook</span></div>'+
+    '<div class="wz-row"><span class="wz-k">Vessel</span><span class="wz-v">'+wzEsc(bits.join(' ')||'—')+'</span></div>'+
+    '<div class="wz-row"><span class="wz-k">Engines</span><span class="wz-v">'+(twin?'Twin':'Single')+'</span></div>'+
+    '<div class="wz-row"><span class="wz-k">Hours</span><span class="wz-v">'+wzEsc(hrs)+'</span></div>'+
+    '<div class="wz-row"><span class="wz-k">Home port</span><span class="wz-v">'+wzEsc(v.homePort||'—')+'</span></div>';
+  wzShow(6);
+}
+
+function wzOpen(){
+  const ov = document.getElementById('wzOverlay');
+  if(ov) ov.remove();
+  applyVessel(getVessel());
+  init();
+}
+
+// ── Bootstrap: wizard on first run, otherwise straight into the app ──
+function boot(){
+  const v = getVessel();
+  if(v){ applyVessel(v); init(); }
+  else { buildWizard(); }
+}
+boot();
+
+</script>
+</body>
+</html>
