@@ -839,6 +839,7 @@ function saveState() {
       trips: state.trips,
       engineTaskOverrides: engineTasks.map(t => ({
         name: t.name,
+        freq: t.freq,
         port: { lastDate: t.port.lastDate, lastHrs: t.port.lastHrs, nextHrs: t.port.nextHrs, nextDate: t.port.nextDate },
         stbd: { lastDate: t.stbd.lastDate, lastHrs: t.stbd.lastHrs, nextHrs: t.stbd.nextHrs, nextDate: t.stbd.nextDate },
       })),
@@ -846,7 +847,7 @@ function saveState() {
       userAddedParts: inventory.filter(i => i.userAdded),
       userAddedTasks: scheduledTasks.filter(t => t.userAdded),
       userAddedEngineTasks: engineTasks.filter(t => t.userAdded),
-      scheduledTaskOverrides: scheduledTasks.filter(t => !t.userAdded).map(t => ({ name: t.name, lastDate: t.lastDate, nextDate: t.nextDate })),
+      scheduledTaskOverrides: scheduledTasks.filter(t => !t.userAdded).map(t => ({ name: t.name, lastDate: t.lastDate, nextDate: t.nextDate, interval: t.interval })),
       hiddenEngineTaskNames: hiddenEngineTaskNames,
       hiddenScheduledTaskNames: hiddenScheduledTaskNames,
     };
@@ -891,8 +892,8 @@ function loadState() {
       if (pd.inventoryStock) pd.inventoryStock.forEach(s => { const item = inventory.find(i => i.id === s.id); if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; } });
       if (pd.userAddedParts) pd.userAddedParts.forEach(p => { if (!inventory.find(i => i.id === p.id)) inventory.push(p); });
       if (pd.userAddedEngineTasks) pd.userAddedEngineTasks.forEach(t => { if (!engineTasks.find(e => e.name === t.name)) engineTasks.push(t); });
-      if (pd.engineTaskOverrides) pd.engineTaskOverrides.forEach(override => { const task = engineTasks.find(t => t.name === override.name); if (task) { task.port.lastDate=override.port.lastDate; task.port.lastHrs=override.port.lastHrs; task.port.nextHrs=override.port.nextHrs; task.port.nextDate=override.port.nextDate; task.stbd.lastDate=override.stbd.lastDate; task.stbd.lastHrs=override.stbd.lastHrs; task.stbd.nextHrs=override.stbd.nextHrs; task.stbd.nextDate=override.stbd.nextDate; } });
-      if (pd.scheduledTaskOverrides) pd.scheduledTaskOverrides.forEach(override => { const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded); if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; } });
+      if (pd.engineTaskOverrides) pd.engineTaskOverrides.forEach(override => { const task = engineTasks.find(t => t.name === override.name); if (task) { if (override.freq) task.freq = override.freq; task.port.lastDate=override.port.lastDate; task.port.lastHrs=override.port.lastHrs; task.port.nextHrs=override.port.nextHrs; task.port.nextDate=override.port.nextDate; task.stbd.lastDate=override.stbd.lastDate; task.stbd.lastHrs=override.stbd.lastHrs; task.stbd.nextHrs=override.stbd.nextHrs; task.stbd.nextDate=override.stbd.nextDate; } });
+      if (pd.scheduledTaskOverrides) pd.scheduledTaskOverrides.forEach(override => { const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded); if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; if (override.interval) task.interval = override.interval; } });
       if (pd.userAddedTasks) pd.userAddedTasks.forEach(t => { if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t); });
       if (pd.hiddenEngineTaskNames) hiddenEngineTaskNames = pd.hiddenEngineTaskNames;
       if (pd.hiddenScheduledTaskNames) hiddenScheduledTaskNames = pd.hiddenScheduledTaskNames;
@@ -912,6 +913,7 @@ function loadState() {
         data.engineTaskOverrides.forEach(override => {
           const task = engineTasks.find(t => t.name === override.name);
           if (task) {
+            if (override.freq) task.freq = override.freq;
             task.port.lastDate = override.port.lastDate; task.port.lastHrs = override.port.lastHrs;
             task.port.nextHrs  = override.port.nextHrs;  task.port.nextDate = override.port.nextDate;
             task.stbd.lastDate = override.stbd.lastDate; task.stbd.lastHrs = override.stbd.lastHrs;
@@ -922,7 +924,7 @@ function loadState() {
       if (data.scheduledTaskOverrides) {
         data.scheduledTaskOverrides.forEach(override => {
           const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded);
-          if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; }
+          if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; if (override.interval) task.interval = override.interval; }
         });
       }
       if (data.inventoryStock) {
