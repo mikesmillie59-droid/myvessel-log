@@ -847,6 +847,8 @@ function saveState() {
       userAddedTasks: scheduledTasks.filter(t => t.userAdded),
       userAddedEngineTasks: engineTasks.filter(t => t.userAdded),
       scheduledTaskOverrides: scheduledTasks.filter(t => !t.userAdded).map(t => ({ name: t.name, lastDate: t.lastDate, nextDate: t.nextDate })),
+      hiddenEngineTaskNames: hiddenEngineTaskNames,
+      hiddenScheduledTaskNames: hiddenScheduledTaskNames,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
     // Save persistent data (survives Clear Saved Data)
@@ -860,9 +862,20 @@ function saveState() {
       scheduledTaskOverrides: toSave.scheduledTaskOverrides,
       userAddedTasks: toSave.userAddedTasks,
       userAddedEngineTasks: toSave.userAddedEngineTasks,
+      hiddenEngineTaskNames: toSave.hiddenEngineTaskNames,
+      hiddenScheduledTaskNames: toSave.hiddenScheduledTaskNames,
     };
     localStorage.setItem(STORAGE_KEY + '_persist', JSON.stringify(persistent));
   } catch(e) { console.warn('Save failed:', e); }
+}
+
+function applyHiddenTasks() {
+  for (let idx = engineTasks.length - 1; idx >= 0; idx--) {
+    if (!engineTasks[idx].userAdded && hiddenEngineTaskNames.includes(engineTasks[idx].name)) engineTasks.splice(idx, 1);
+  }
+  for (let idx = scheduledTasks.length - 1; idx >= 0; idx--) {
+    if (!scheduledTasks[idx].userAdded && hiddenScheduledTaskNames.includes(scheduledTasks[idx].name)) scheduledTasks.splice(idx, 1);
+  }
 }
 
 function loadState() {
@@ -881,52 +894,58 @@ function loadState() {
       if (pd.engineTaskOverrides) pd.engineTaskOverrides.forEach(override => { const task = engineTasks.find(t => t.name === override.name); if (task) { task.port.lastDate=override.port.lastDate; task.port.lastHrs=override.port.lastHrs; task.port.nextHrs=override.port.nextHrs; task.port.nextDate=override.port.nextDate; task.stbd.lastDate=override.stbd.lastDate; task.stbd.lastHrs=override.stbd.lastHrs; task.stbd.nextHrs=override.stbd.nextHrs; task.stbd.nextDate=override.stbd.nextDate; } });
       if (pd.scheduledTaskOverrides) pd.scheduledTaskOverrides.forEach(override => { const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded); if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; } });
       if (pd.userAddedTasks) pd.userAddedTasks.forEach(t => { if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t); });
+      if (pd.hiddenEngineTaskNames) hiddenEngineTaskNames = pd.hiddenEngineTaskNames;
+      if (pd.hiddenScheduledTaskNames) hiddenScheduledTaskNames = pd.hiddenScheduledTaskNames;
     }
   } catch(e) { console.warn('Persist load failed:', e); }
   // Then load main session state — overwrites persist where present
-  if (!mainExists) return;
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const data = JSON.parse(saved);
-    if (data.portHrs) { state.portHrs = data.portHrs; document.getElementById('portHrs').value = data.portHrs; }
-    if (data.stbdHrs) { state.stbdHrs = data.stbdHrs; document.getElementById('stbdHrs').value = data.stbdHrs; }
-    if (data.loggedTasks) state.loggedTasks = data.loggedTasks;
-    if (data.trips) state.trips = data.trips;
-    if (data.userAddedEngineTasks) data.userAddedEngineTasks.forEach(t => { if (!engineTasks.find(e => e.name === t.name)) engineTasks.push(t); });
-    if (data.engineTaskOverrides) {
-      data.engineTaskOverrides.forEach(override => {
-        const task = engineTasks.find(t => t.name === override.name);
-        if (task) {
-          task.port.lastDate = override.port.lastDate; task.port.lastHrs = override.port.lastHrs;
-          task.port.nextHrs  = override.port.nextHrs;  task.port.nextDate = override.port.nextDate;
-          task.stbd.lastDate = override.stbd.lastDate; task.stbd.lastHrs = override.stbd.lastHrs;
-          task.stbd.nextHrs  = override.stbd.nextHrs;  task.stbd.nextDate = override.stbd.nextDate;
-        }
-      });
-    }
-    if (data.scheduledTaskOverrides) {
-      data.scheduledTaskOverrides.forEach(override => {
-        const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded);
-        if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; }
-      });
-    }
-    if (data.inventoryStock) {
-      data.inventoryStock.forEach(s => {
-        const item = inventory.find(i => i.id === s.id);
-        if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; }
-      });
-    }
-    if (data.userAddedParts) {
-      data.userAddedParts.forEach(p => {
-        if (!inventory.find(i => i.id === p.id)) inventory.push(p);
-      });
-    }
-    if (data.userAddedTasks) {
-      data.userAddedTasks.forEach(t => {
-        if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t);
-      });
-    }
-  } catch(e) { console.warn('Load failed:', e); }
+  if (mainExists) {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const data = JSON.parse(saved);
+      if (data.portHrs) { state.portHrs = data.portHrs; document.getElementById('portHrs').value = data.portHrs; }
+      if (data.stbdHrs) { state.stbdHrs = data.stbdHrs; document.getElementById('stbdHrs').value = data.stbdHrs; }
+      if (data.loggedTasks) state.loggedTasks = data.loggedTasks;
+      if (data.trips) state.trips = data.trips;
+      if (data.userAddedEngineTasks) data.userAddedEngineTasks.forEach(t => { if (!engineTasks.find(e => e.name === t.name)) engineTasks.push(t); });
+      if (data.engineTaskOverrides) {
+        data.engineTaskOverrides.forEach(override => {
+          const task = engineTasks.find(t => t.name === override.name);
+          if (task) {
+            task.port.lastDate = override.port.lastDate; task.port.lastHrs = override.port.lastHrs;
+            task.port.nextHrs  = override.port.nextHrs;  task.port.nextDate = override.port.nextDate;
+            task.stbd.lastDate = override.stbd.lastDate; task.stbd.lastHrs = override.stbd.lastHrs;
+            task.stbd.nextHrs  = override.stbd.nextHrs;  task.stbd.nextDate = override.stbd.nextDate;
+          }
+        });
+      }
+      if (data.scheduledTaskOverrides) {
+        data.scheduledTaskOverrides.forEach(override => {
+          const task = scheduledTasks.find(t => t.name === override.name && !t.userAdded);
+          if (task) { task.lastDate = override.lastDate; task.nextDate = override.nextDate; }
+        });
+      }
+      if (data.inventoryStock) {
+        data.inventoryStock.forEach(s => {
+          const item = inventory.find(i => i.id === s.id);
+          if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; }
+        });
+      }
+      if (data.userAddedParts) {
+        data.userAddedParts.forEach(p => {
+          if (!inventory.find(i => i.id === p.id)) inventory.push(p);
+        });
+      }
+      if (data.userAddedTasks) {
+        data.userAddedTasks.forEach(t => {
+          if (!scheduledTasks.find(s => s.name === t.name && s.userAdded)) scheduledTasks.push(t);
+        });
+      }
+      if (data.hiddenEngineTaskNames) hiddenEngineTaskNames = data.hiddenEngineTaskNames;
+      if (data.hiddenScheduledTaskNames) hiddenScheduledTaskNames = data.hiddenScheduledTaskNames;
+    } catch(e) { console.warn('Load failed:', e); }
+  }
+  applyHiddenTasks();
 }
 
 function clearLocalData() {
@@ -946,6 +965,8 @@ let state = {
 let pendingPhotos = [];
 let pendingStock = { partId: null, partName: null, delta: 0, originalStock: null };
 let editingLogIdx = null;
+let hiddenEngineTaskNames = [];
+let hiddenScheduledTaskNames = [];
 
 // Engine tasks — shared list, status computed per engine
 const engineTasks = [
@@ -1125,7 +1146,10 @@ function renderDashboard() {
         <div class="task-status">${st.icon} ${st.detail}</div>
       </div>
       <div style="padding:0 14px 12px;">
-        <button class="inv-action-btn" onclick="toggleEditSchedTask(${i})" title="Edit" style="padding:2px 0;">✏️ Edit</button>
+        <div style="display:flex;gap:14px;">
+          <button class="inv-action-btn" onclick="toggleEditSchedTask(${i})" title="Edit" style="padding:2px 0;">✏️ Edit</button>
+          <button class="inv-action-btn delete" onclick="deleteScheduledTask(${i})" title="Delete" style="padding:2px 0;">🗑 Delete</button>
+        </div>
         <div class="inv-edit-form" id="sched-edit-${i}">
           <div class="inv-edit-row"><span class="inv-edit-label">Interval</span><input class="inv-edit-input" id="se-interval-${i}" value="${wzEsc(t.interval)}" placeholder="e.g. annual, 3 monthly, 5 years"></div>
           <div class="inv-edit-row"><span class="inv-edit-label">Last done</span><input type="date" class="inv-edit-input" id="se-last-${i}" value="${lastVal}"></div>
@@ -1153,20 +1177,28 @@ function renderEngineList() {
     const logged = state.loggedTasks.find(l => l.task === task.name);
     const isHourBased = /hrs/i.test(task.freq);
 
-    let editFields = `<div class="inv-edit-row"><span class="inv-edit-label">Frequency</span><input class="inv-edit-input" id="ee-freq-${i}" value="${wzEsc(task.freq)}" placeholder="e.g. 200 hrs or annual"></div>`;
-    if (isHourBased) {
-      editFields += `
-        <div class="inv-edit-row"><span class="inv-edit-label">Port last hrs</span><input type="number" class="inv-edit-input" id="ee-plast-${i}" value="${task.port.lastHrs ?? ''}"></div>
-        <div class="inv-edit-row"><span class="inv-edit-label">Port next due</span><input type="number" class="inv-edit-input" id="ee-pnext-${i}" value="${task.port.nextHrs ?? ''}"></div>
-        <div class="inv-edit-row"><span class="inv-edit-label">Stbd last hrs</span><input type="number" class="inv-edit-input" id="ee-slast-${i}" value="${task.stbd.lastHrs ?? ''}"></div>
-        <div class="inv-edit-row"><span class="inv-edit-label">Stbd next due</span><input type="number" class="inv-edit-input" id="ee-snext-${i}" value="${task.stbd.nextHrs ?? ''}"></div>`;
-    } else {
-      editFields += `
-        <div class="inv-edit-row"><span class="inv-edit-label">Port last</span><input type="date" class="inv-edit-input" id="ee-plast-${i}" value="${toDateInputVal(task.port.lastDate)}"></div>
-        <div class="inv-edit-row"><span class="inv-edit-label">Port next due</span><input type="date" class="inv-edit-input" id="ee-pnext-${i}" value="${toDateInputVal(task.port.nextDate)}"></div>
-        <div class="inv-edit-row"><span class="inv-edit-label">Stbd last</span><input type="date" class="inv-edit-input" id="ee-slast-${i}" value="${toDateInputVal(task.stbd.lastDate)}"></div>
-        <div class="inv-edit-row"><span class="inv-edit-label">Stbd next due</span><input type="date" class="inv-edit-input" id="ee-snext-${i}" value="${toDateInputVal(task.stbd.nextDate)}"></div>`;
-    }
+    const freqNum = isHourBased ? (parseInt(task.freq) || '') : '';
+    const editFields = `
+      <div class="inv-edit-row"><span class="inv-edit-label">Schedule by</span></div>
+      <div class="engine-chips" style="margin-bottom:8px;">
+        <div class="engine-chip ${isHourBased ? 'selected' : ''}" id="ee-typeHours-${i}" onclick="setEditEngineTaskType(${i},'hours')">Engine hours</div>
+        <div class="engine-chip ${isHourBased ? '' : 'selected'}" id="ee-typeDate-${i}" onclick="setEditEngineTaskType(${i},'date')">Calendar date</div>
+      </div>
+      <div id="ee-hoursFields-${i}" style="${isHourBased ? '' : 'display:none;'}">
+        <div class="inv-edit-row"><span class="inv-edit-label">Every hrs</span><input type="number" class="inv-edit-input" id="ee-hrsInterval-${i}" value="${freqNum}" placeholder="e.g. 200"></div>
+        <div class="inv-edit-row"><span class="inv-edit-label">Port last hrs</span><input type="number" class="inv-edit-input" id="ee-plasth-${i}" value="${task.port.lastHrs ?? ''}"></div>
+        <div class="inv-edit-row"><span class="inv-edit-label">Port next due</span><input type="number" class="inv-edit-input" id="ee-pnexth-${i}" value="${task.port.nextHrs ?? ''}"></div>
+        <div class="inv-edit-row"><span class="inv-edit-label">Stbd last hrs</span><input type="number" class="inv-edit-input" id="ee-slasth-${i}" value="${task.stbd.lastHrs ?? ''}"></div>
+        <div class="inv-edit-row"><span class="inv-edit-label">Stbd next due</span><input type="number" class="inv-edit-input" id="ee-snexth-${i}" value="${task.stbd.nextHrs ?? ''}"></div>
+      </div>
+      <div id="ee-dateFields-${i}" style="${isHourBased ? 'display:none;' : ''}">
+        <div class="inv-edit-row"><span class="inv-edit-label">Interval</span><input class="inv-edit-input" id="ee-interval-${i}" value="${isHourBased ? '' : wzEsc(task.freq)}" placeholder="e.g. annual, 3 monthly"></div>
+        <div class="inv-edit-row"><span class="inv-edit-label">Port last</span><input type="date" class="inv-edit-input" id="ee-plastd-${i}" value="${toDateInputVal(task.port.lastDate)}"></div>
+        <div class="inv-edit-row"><span class="inv-edit-label">Port next due</span><input type="date" class="inv-edit-input" id="ee-pnextd-${i}" value="${toDateInputVal(task.port.nextDate)}"></div>
+        <div class="inv-edit-row"><span class="inv-edit-label">Stbd last</span><input type="date" class="inv-edit-input" id="ee-slastd-${i}" value="${toDateInputVal(task.stbd.lastDate)}"></div>
+        <div class="inv-edit-row"><span class="inv-edit-label">Stbd next due</span><input type="date" class="inv-edit-input" id="ee-snextd-${i}" value="${toDateInputVal(task.stbd.nextDate)}"></div>
+      </div>`;
+    window['_eeType' + i] = isHourBased ? 'hours' : 'date';
 
     html += `
     <div class="eng-row-card ${cardCls}" style="animation-delay:${i*0.03}s">
@@ -1188,7 +1220,10 @@ function renderEngineList() {
       </div>
       ${task.notes ? `<div class="eng-row-note">💬 ${task.notes}</div>` : ''}
       <div style="padding:0 12px 12px;">
-        <button class="inv-action-btn" onclick="toggleEditEngineTask(${i})" title="Edit" style="padding:2px 0;">✏️ Edit</button>
+        <div style="display:flex;gap:14px;">
+          <button class="inv-action-btn" onclick="toggleEditEngineTask(${i})" title="Edit" style="padding:2px 0;">✏️ Edit</button>
+          <button class="inv-action-btn delete" onclick="deleteEngineTask(${i})" title="Delete" style="padding:2px 0;">🗑 Delete</button>
+        </div>
         <div class="inv-edit-form" id="eng-edit-${i}">
           ${editFields}
           <div style="display:flex;gap:8px;margin-top:8px;">
@@ -1937,37 +1972,82 @@ function saveEditSchedTask(idx) {
   showToast('✓ Task updated');
 }
 
+function deleteScheduledTask(idx) {
+  const t = scheduledTasks[idx];
+  if (!t) return;
+  if (!confirm(`Delete "${t.name}" from your maintenance list? This won't delete any log history you've already recorded for it.`)) return;
+  if (!t.userAdded && !hiddenScheduledTaskNames.includes(t.name)) hiddenScheduledTaskNames.push(t.name);
+  scheduledTasks.splice(idx, 1);
+  saveState();
+  renderDashboard();
+  renderEngineList();
+  showToast('Task removed');
+}
+
 function toggleEditEngineTask(idx) {
   const form = document.getElementById('eng-edit-' + idx);
   if (form) form.classList.toggle('open');
 }
 
+function setEditEngineTaskType(idx, type) {
+  window['_eeType' + idx] = type;
+  const h = document.getElementById('ee-typeHours-' + idx), d = document.getElementById('ee-typeDate-' + idx);
+  const hf = document.getElementById('ee-hoursFields-' + idx), df = document.getElementById('ee-dateFields-' + idx);
+  if (h) h.classList.toggle('selected', type === 'hours');
+  if (d) d.classList.toggle('selected', type === 'date');
+  if (hf) hf.style.display = type === 'hours' ? 'block' : 'none';
+  if (df) df.style.display = type === 'date' ? 'block' : 'none';
+}
+
 function saveEditEngineTask(idx) {
   const t = engineTasks[idx];
   if (!t) return;
-  const isHourBased = /hrs/i.test(t.freq);
-  const freqEl = document.getElementById('ee-freq-' + idx);
-  const freqVal = freqEl ? freqEl.value.trim() : '';
-  if (freqVal) t.freq = freqVal;
-  const pLastEl = document.getElementById('ee-plast-' + idx);
-  const pNextEl = document.getElementById('ee-pnext-' + idx);
-  const sLastEl = document.getElementById('ee-slast-' + idx);
-  const sNextEl = document.getElementById('ee-snext-' + idx);
-  if (isHourBased) {
+  const type = window['_eeType' + idx] || (/hrs/i.test(t.freq) ? 'hours' : 'date');
+  if (type === 'hours') {
+    const n = parseInt(document.getElementById('ee-hrsInterval-' + idx).value, 10);
+    if (!n || n <= 0) { showToast('Enter how many hours between services'); return; }
+    t.freq = n + ' hrs';
+    const pLastEl = document.getElementById('ee-plasth-' + idx);
+    const pNextEl = document.getElementById('ee-pnexth-' + idx);
+    const sLastEl = document.getElementById('ee-slasth-' + idx);
+    const sNextEl = document.getElementById('ee-snexth-' + idx);
     t.port.lastHrs = pLastEl.value !== '' ? parseInt(pLastEl.value) : null;
     t.port.nextHrs = pNextEl.value !== '' ? parseInt(pNextEl.value) : null;
     t.stbd.lastHrs = sLastEl.value !== '' ? parseInt(sLastEl.value) : null;
     t.stbd.nextHrs = sNextEl.value !== '' ? parseInt(sNextEl.value) : null;
+    t.port.nextDate = null;
+    t.stbd.nextDate = null;
   } else {
+    const interval = document.getElementById('ee-interval-' + idx).value.trim();
+    if (!interval) { showToast('Enter an interval, e.g. annual'); return; }
+    t.freq = interval;
+    const pLastEl = document.getElementById('ee-plastd-' + idx);
+    const pNextEl = document.getElementById('ee-pnextd-' + idx);
+    const sLastEl = document.getElementById('ee-slastd-' + idx);
+    const sNextEl = document.getElementById('ee-snextd-' + idx);
     t.port.lastDate = pLastEl.value ? formatDate(new Date(pLastEl.value)) : '—';
     t.port.nextDate = pNextEl.value ? formatDate(new Date(pNextEl.value)) : null;
     t.stbd.lastDate = sLastEl.value ? formatDate(new Date(sLastEl.value)) : '—';
     t.stbd.nextDate = sNextEl.value ? formatDate(new Date(sNextEl.value)) : null;
+    t.port.nextHrs = null;
+    t.stbd.nextHrs = null;
   }
   saveState();
   renderDashboard();
   renderEngineList();
   showToast('✓ Task updated');
+}
+
+function deleteEngineTask(idx) {
+  const t = engineTasks[idx];
+  if (!t) return;
+  if (!confirm(`Delete "${t.name}" from your engine task list? This won't delete any log history you've already recorded for it.`)) return;
+  if (!t.userAdded && !hiddenEngineTaskNames.includes(t.name)) hiddenEngineTaskNames.push(t.name);
+  engineTasks.splice(idx, 1);
+  saveState();
+  renderDashboard();
+  renderEngineList();
+  showToast('Task removed');
 }
 
 function showToast(msg) {
