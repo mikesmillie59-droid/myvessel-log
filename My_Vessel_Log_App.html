@@ -1114,8 +1114,9 @@ function renderDashboard() {
         <div class="task-status">${st.icon} ${st.detail}</div>
       </div>
       <div style="padding:0 14px 12px;">
-        <button class="inv-action-btn" onclick="toggleEditSchedTask(${i})" title="Edit" style="padding:2px 0;">✏️ Edit dates</button>
+        <button class="inv-action-btn" onclick="toggleEditSchedTask(${i})" title="Edit" style="padding:2px 0;">✏️ Edit</button>
         <div class="inv-edit-form" id="sched-edit-${i}">
+          <div class="inv-edit-row"><span class="inv-edit-label">Interval</span><input class="inv-edit-input" id="se-interval-${i}" value="${wzEsc(t.interval)}" placeholder="e.g. annual, 3 monthly, 5 years"></div>
           <div class="inv-edit-row"><span class="inv-edit-label">Last done</span><input type="date" class="inv-edit-input" id="se-last-${i}" value="${lastVal}"></div>
           <div class="inv-edit-row"><span class="inv-edit-label">Next due</span><input type="date" class="inv-edit-input" id="se-next-${i}" value="${nextVal}"></div>
           <div style="display:flex;gap:8px;margin-top:8px;">
@@ -1141,15 +1142,15 @@ function renderEngineList() {
     const logged = state.loggedTasks.find(l => l.task === task.name);
     const isHourBased = /hrs/i.test(task.freq);
 
-    let editFields;
+    let editFields = `<div class="inv-edit-row"><span class="inv-edit-label">Frequency</span><input class="inv-edit-input" id="ee-freq-${i}" value="${wzEsc(task.freq)}" placeholder="e.g. 200 hrs or annual"></div>`;
     if (isHourBased) {
-      editFields = `
+      editFields += `
         <div class="inv-edit-row"><span class="inv-edit-label">Port last hrs</span><input type="number" class="inv-edit-input" id="ee-plast-${i}" value="${task.port.lastHrs ?? ''}"></div>
         <div class="inv-edit-row"><span class="inv-edit-label">Port next due</span><input type="number" class="inv-edit-input" id="ee-pnext-${i}" value="${task.port.nextHrs ?? ''}"></div>
         <div class="inv-edit-row"><span class="inv-edit-label">Stbd last hrs</span><input type="number" class="inv-edit-input" id="ee-slast-${i}" value="${task.stbd.lastHrs ?? ''}"></div>
         <div class="inv-edit-row"><span class="inv-edit-label">Stbd next due</span><input type="number" class="inv-edit-input" id="ee-snext-${i}" value="${task.stbd.nextHrs ?? ''}"></div>`;
     } else {
-      editFields = `
+      editFields += `
         <div class="inv-edit-row"><span class="inv-edit-label">Port last</span><input type="date" class="inv-edit-input" id="ee-plast-${i}" value="${toDateInputVal(task.port.lastDate)}"></div>
         <div class="inv-edit-row"><span class="inv-edit-label">Port next due</span><input type="date" class="inv-edit-input" id="ee-pnext-${i}" value="${toDateInputVal(task.port.nextDate)}"></div>
         <div class="inv-edit-row"><span class="inv-edit-label">Stbd last</span><input type="date" class="inv-edit-input" id="ee-slast-${i}" value="${toDateInputVal(task.stbd.lastDate)}"></div>
@@ -1858,6 +1859,8 @@ function toggleEditSchedTask(idx) {
 function saveEditSchedTask(idx) {
   const t = scheduledTasks[idx];
   if (!t) return;
+  const intervalVal = document.getElementById('se-interval-' + idx).value.trim();
+  if (intervalVal) t.interval = intervalVal;
   const lastVal = document.getElementById('se-last-' + idx).value;
   const nextVal = document.getElementById('se-next-' + idx).value;
   t.lastDate = lastVal ? formatDate(new Date(lastVal)) : '—';
@@ -1876,6 +1879,9 @@ function saveEditEngineTask(idx) {
   const t = engineTasks[idx];
   if (!t) return;
   const isHourBased = /hrs/i.test(t.freq);
+  const freqEl = document.getElementById('ee-freq-' + idx);
+  const freqVal = freqEl ? freqEl.value.trim() : '';
+  if (freqVal) t.freq = freqVal;
   const pLastEl = document.getElementById('ee-plast-' + idx);
   const pNextEl = document.getElementById('ee-pnext-' + idx);
   const sLastEl = document.getElementById('ee-slast-' + idx);
