@@ -598,15 +598,27 @@ input[type=date]::-webkit-inner-spin-button{display:none;-webkit-appearance:none
     <div class="divider"></div>
     <div class="sec-header">
       <div class="sec-title">Scheduled Maintenance</div>
+    </div>
+    <div id="dashScheduled"></div>
+    <div class="divider"></div>
+    <div class="sec-header">
+      <div class="sec-title">Add a Maintenance Task</div>
       <button class="add-btn" onclick="toggleAddTask()">＋ Add Task</button>
     </div>
     <div id="addTaskForm" style="display:none; background:var(--hull); border:1px solid rgba(255,255,255,0.1); border-radius:var(--radius); padding:14px; margin-bottom:12px;">
       <div class="form-label">Task name *</div>
       <input class="form-input" id="ntName" placeholder="e.g. Windlass service" style="margin-bottom:10px;">
-      <div class="form-label">Schedule by</div>
+      <div class="form-label">Applies to</div>
       <div class="engine-chips" style="margin-bottom:10px;">
-        <div class="engine-chip selected" id="ntTypeHours" onclick="setTaskType('hours')">Engine hours</div>
-        <div class="engine-chip" id="ntTypeDate" onclick="setTaskType('date')">Calendar date</div>
+        <div class="engine-chip selected" id="ntScopeEngine" onclick="setTaskScope('engine')">Port &amp; Stbd Engines</div>
+        <div class="engine-chip" id="ntScopeGeneral" onclick="setTaskScope('general')">General / Whole Boat</div>
+      </div>
+      <div id="ntTypeRow">
+        <div class="form-label">Schedule by</div>
+        <div class="engine-chips" style="margin-bottom:10px;">
+          <div class="engine-chip selected" id="ntTypeHours" onclick="setTaskType('hours')">Engine hours</div>
+          <div class="engine-chip" id="ntTypeDate" onclick="setTaskType('date')">Calendar date</div>
+        </div>
       </div>
       <div id="ntHoursFields">
         <div class="form-label">Every … hours</div>
@@ -626,7 +638,6 @@ input[type=date]::-webkit-inner-spin-button{display:none;-webkit-appearance:none
         <button class="log-submit-btn" onclick="toggleAddTask()" style="flex:1;background:var(--hull);border:1px solid rgba(255,255,255,0.2);">Cancel</button>
       </div>
     </div>
-    <div id="dashScheduled"></div>
   </div>
 
   <!-- ENGINES — combined side-by-side -->
@@ -717,7 +728,7 @@ input[type=date]::-webkit-inner-spin-button{display:none;-webkit-appearance:none
     <div class="form-row">
       <label class="form-label">Task Name</label>
       <input class="form-input" id="fTask" placeholder="e.g. Oil and Filters or type your own" autocomplete="off" oninput="filterTaskList(this.value)" onfocus="showTaskDropdown()" onblur="setTimeout(hideTaskDropdown,200)">
-      <div id="taskDropdown" style="display:none;position:absolute;z-index:999;left:0;right:0;background:#0D2135;border:1px solid rgba(255,255,255,0.15);border-radius:8px;max-height:200px;overflow-y:auto;margin-top:2px;box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>
+      <div id="taskDropdown" style="display:none;position:absolute;z-index:999;left:0;right:0;background:#0D2135;border:1px solid rgba(255,255,255,0.15);border-radius:8px;max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;margin-top:2px;box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>
     </div>
 
     <div class="form-row">
@@ -1668,13 +1679,30 @@ function setTaskType(type){
 }
 window.ntType = 'hours';
 
+function setTaskScope(scope){
+  window.ntScope = scope;
+  const e=document.getElementById('ntScopeEngine'), g=document.getElementById('ntScopeGeneral');
+  const typeRow=document.getElementById('ntTypeRow');
+  if(e) e.classList.toggle('selected', scope==='engine');
+  if(g) g.classList.toggle('selected', scope==='general');
+  if (scope === 'general') {
+    if (typeRow) typeRow.style.display = 'none';
+    setTaskType('date');
+  } else {
+    if (typeRow) typeRow.style.display = 'block';
+    setTaskType(window.ntType === 'date' ? 'date' : 'hours');
+  }
+}
+window.ntScope = 'engine';
+
 function addNewTask() {
   const name = document.getElementById('ntName').value.trim();
   if (!name) { showToast('Please enter a task name'); return; }
   const notes = document.getElementById('ntNotes').value.trim() || '';
-  const type = window.ntType || 'hours';
+  const scope = window.ntScope || 'engine';
+  const type = scope === 'engine' ? (window.ntType || 'hours') : 'date';
 
-  if (type === 'hours') {
+  if (scope === 'engine' && type === 'hours') {
     const n = parseInt(document.getElementById('ntHrsInterval').value, 10);
     if (!n || n <= 0) { showToast('Enter how many hours between services'); return; }
     if (engineTasks.find(t => t.name === name)) { showToast('A task with that name already exists'); return; }
@@ -1686,7 +1714,21 @@ function addNewTask() {
       port: { lastDate:'—', lastHrs:null, nextHrs:(state.portHrs||0)+n, nextDate:null },
       stbd: { lastDate:'—', lastHrs:null, nextHrs:(state.stbdHrs||0)+n, nextDate:null },
     });
-    showToast('✓ Hours-based task added');
+    showToast('✓ Engine task added');
+  } else if (scope === 'engine' && type === 'date') {
+    const rawDate = document.getElementById('ntNextDate').value;
+    const nextDate = rawDate ? formatDate(new Date(rawDate)) : null;
+    const interval = document.getElementById('ntInterval').value.trim() || 'annual';
+    if (engineTasks.find(t => t.name === name)) { showToast('A task with that name already exists'); return; }
+    engineTasks.push({
+      name,
+      freq: interval,
+      notes,
+      userAdded: true,
+      port: { lastDate:'—', lastHrs:null, nextHrs:null, nextDate },
+      stbd: { lastDate:'—', lastHrs:null, nextHrs:null, nextDate },
+    });
+    showToast('✓ Engine task added');
   } else {
     const rawDate = document.getElementById('ntNextDate').value;
     const nextDate = rawDate ? formatDate(new Date(rawDate)) : null;
@@ -1699,11 +1741,12 @@ function addNewTask() {
       notes,
       userAdded: true,
     });
-    showToast('✓ Calendar task added');
+    showToast('✓ General task added');
   }
 
   ['ntName','ntHrsInterval','ntInterval','ntNextDate','ntNotes'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  setTaskType('hours');
+  window.ntType = 'hours';
+  setTaskScope('engine');
   toggleAddTask();
   saveState();
   renderDashboard();
@@ -1790,13 +1833,36 @@ function adjustPartStock(idx, delta) {
   showToast(`${item.name}: ${item.stock} in stock`);
 }
 
+let _ddTouchActive = false;
+let _taskTouchStartY = null;
+let _taskTouchMoved = false;
+
+function taskRowTouchStart(e) {
+  _ddTouchActive = true;
+  _taskTouchMoved = false;
+  _taskTouchStartY = e.touches && e.touches[0] ? e.touches[0].clientY : null;
+}
+function taskRowTouchMove(e) {
+  if (_taskTouchStartY !== null && e.touches && e.touches[0]) {
+    if (Math.abs(e.touches[0].clientY - _taskTouchStartY) > 8) _taskTouchMoved = true;
+  }
+}
+function taskRowTouchEnd(e, name) {
+  _ddTouchActive = false;
+  if (_taskTouchMoved) { _taskTouchMoved = false; return; }
+  e.preventDefault();
+  selectTask(name);
+}
+
 function buildTaskDropdown(names) {
   const dd = document.getElementById('taskDropdown');
   if (!dd) return;
   dd.innerHTML = names.map(n =>
     `<div style="padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.06);color:var(--text);"
       onmousedown="selectTask('${n}')"
-      ontouchstart="selectTask('${n}')">${n}</div>`
+      ontouchstart="taskRowTouchStart(event)"
+      ontouchmove="taskRowTouchMove(event)"
+      ontouchend="taskRowTouchEnd(event,'${n}')">${n}</div>`
   ).join('');
 }
 
@@ -1812,6 +1878,7 @@ function showTaskDropdown() {
 }
 
 function hideTaskDropdown() {
+  if (_ddTouchActive) return;
   const dd = document.getElementById('taskDropdown');
   if (dd) dd.style.display = 'none';
 }
