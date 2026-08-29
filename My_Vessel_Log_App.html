@@ -843,7 +843,7 @@ function saveState() {
         port: { lastDate: t.port.lastDate, lastHrs: t.port.lastHrs, nextHrs: t.port.nextHrs, nextDate: t.port.nextDate },
         stbd: { lastDate: t.stbd.lastDate, lastHrs: t.stbd.lastHrs, nextHrs: t.stbd.nextHrs, nextDate: t.stbd.nextDate },
       })),
-      inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock, notes: i.notes || '' })),
+      inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock, notes: i.notes || '', partNum: i.partNum || null, vendor: i.vendor || null, cat: i.cat || null })),
       userAddedParts: inventory.filter(i => i.userAdded),
       userAddedTasks: scheduledTasks.filter(t => t.userAdded),
       userAddedEngineTasks: engineTasks.filter(t => t.userAdded),
@@ -857,7 +857,7 @@ function saveState() {
       portHrs: state.portHrs,
       stbdHrs: state.stbdHrs,
       trips: state.trips,
-      inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock, notes: i.notes || '' })),
+      inventoryStock: inventory.map(i => ({ id: i.id, stock: i.stock, notes: i.notes || '', partNum: i.partNum || null, vendor: i.vendor || null, cat: i.cat || null })),
       userAddedParts: inventory.filter(i => i.userAdded),
       engineTaskOverrides: toSave.engineTaskOverrides,
       scheduledTaskOverrides: toSave.scheduledTaskOverrides,
@@ -889,7 +889,7 @@ function loadState() {
       if (pd.portHrs) { state.portHrs = pd.portHrs; document.getElementById('portHrs').value = pd.portHrs; }
       if (pd.stbdHrs) { state.stbdHrs = pd.stbdHrs; document.getElementById('stbdHrs').value = pd.stbdHrs; }
       if (pd.trips) state.trips = pd.trips;
-      if (pd.inventoryStock) pd.inventoryStock.forEach(s => { const item = inventory.find(i => i.id === s.id); if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; } });
+      if (pd.inventoryStock) pd.inventoryStock.forEach(s => { const item = inventory.find(i => i.id === s.id); if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; if (s.partNum !== undefined) item.partNum = s.partNum; if (s.vendor !== undefined) item.vendor = s.vendor; if (s.cat) item.cat = s.cat; } });
       if (pd.userAddedParts) pd.userAddedParts.forEach(p => { if (!inventory.find(i => i.id === p.id)) inventory.push(p); });
       if (pd.userAddedEngineTasks) pd.userAddedEngineTasks.forEach(t => { if (!engineTasks.find(e => e.name === t.name)) engineTasks.push(t); });
       if (pd.engineTaskOverrides) pd.engineTaskOverrides.forEach(override => { const task = engineTasks.find(t => t.name === override.name); if (task) { if (override.freq) task.freq = override.freq; task.port.lastDate=override.port.lastDate; task.port.lastHrs=override.port.lastHrs; task.port.nextHrs=override.port.nextHrs; task.port.nextDate=override.port.nextDate; task.stbd.lastDate=override.stbd.lastDate; task.stbd.lastHrs=override.stbd.lastHrs; task.stbd.nextHrs=override.stbd.nextHrs; task.stbd.nextDate=override.stbd.nextDate; } });
@@ -930,7 +930,13 @@ function loadState() {
       if (data.inventoryStock) {
         data.inventoryStock.forEach(s => {
           const item = inventory.find(i => i.id === s.id);
-          if (item) { item.stock = s.stock; if (s.notes !== undefined) item.notes = s.notes; }
+          if (item) {
+            item.stock = s.stock;
+            if (s.notes !== undefined) item.notes = s.notes;
+            if (s.partNum !== undefined) item.partNum = s.partNum;
+            if (s.vendor !== undefined) item.vendor = s.vendor;
+            if (s.cat) item.cat = s.cat;
+          }
         });
       }
       if (data.userAddedParts) {
