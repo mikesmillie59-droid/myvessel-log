@@ -2857,5 +2857,80 @@ function boot(){
 boot();
 
 </script>
+<style>
+/* ══════════════════════════════════════════════════════════════
+   TABLET & LAPTOP LAYOUTS (added Oct 2026)
+   Phones (under 700px wide) are not affected by anything below.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Tablet held upright and wider (700px +) ── */
+@media (min-width: 700px) {
+  .app { max-width: 760px; }
+
+  /* Bottom menu: same width as the app, centred (also fixes it sitting off-centre) */
+  .bottom-nav { left: 0; right: 0; transform: none; width: auto; max-width: 760px; margin: 0 auto; }
+
+  /* Lists become two cards across */
+  #dashEngineTasks, #dashScheduled, #engineTaskList,
+  #logList, #tripList, #inventoryList {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px; align-items: start;
+  }
+  #dashEngineTasks > *, #dashScheduled > *, #engineTaskList > *,
+  #logList > *, #tripList > *, #inventoryList > * { margin-bottom: 0; }
+  #dashEngineTasks > .empty, #dashScheduled > .empty, #engineTaskList > .empty,
+  #logList > .empty, #tripList > .empty, #inventoryList > .empty { grid-column: 1 / -1; }
+  #dashScheduled, #engineTaskList, #logList, #tripList, #inventoryList { margin-bottom: 12px; }
+
+  /* Pop-up forms open as a centred window rather than sliding up from the bottom */
+  .log-overlay { align-items: center; justify-content: center; padding: 24px; }
+  .log-panel {
+    max-width: 560px; border-radius: 20px;
+    border: 1px solid rgba(200,146,42,0.3);
+    animation: slideIn 0.25s ease;
+    max-height: calc(100vh - 48px);
+  }
+  .log-handle { display: none; }
+
+  .section { padding: 20px; }
+}
+
+/* ── Tablet turned sideways and laptops (1024px +) ── */
+@media (min-width: 1024px) {
+  .app { max-width: 1200px; padding-bottom: 40px; }
+
+  /* Header scrolls away; the tab bar stays pinned at the top instead */
+  .header { position: relative; padding: 18px 24px 14px; }
+  .boat-photo-wrap { aspect-ratio: 7/1; }
+  .nav-tabs { position: sticky; top: 0; z-index: 100; justify-content: center; }
+  .tab { flex: 0 1 180px; padding: 14px 10px; font-size: 12px; }
+
+  /* The top tab bar does the job, so the bottom menu is hidden */
+  .bottom-nav { display: none; }
+  .fab { bottom: 28px; right: 28px; }
+
+  .section { padding: 24px; }
+
+  /* Dashboard: engine tasks on the left, scheduled maintenance on the right */
+  #tab-dashboard.active {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(8, auto) 1fr;
+    column-gap: 24px; align-items: start;
+  }
+  /* Everything goes in the right-hand column, in its normal order... */
+  #tab-dashboard > * { grid-column: 2; }
+  /* ...except the alert banner (full width) and the engine tasks (left column) */
+  #tab-dashboard > #dashAlerts { grid-column: 1 / -1; grid-row: 1; }
+  #tab-dashboard > #dashAlerts + .sec-header { grid-column: 1; grid-row: 2; }
+  #tab-dashboard > #dashEngineTasks { grid-column: 1; grid-row: 3 / -1; }
+  #tab-dashboard > .divider { display: none; }
+  #tab-dashboard > .sec-header { margin-top: 4px; }
+  #dashScheduled { margin-bottom: 16px; }
+  #dashEngineTasks, #dashScheduled { grid-template-columns: minmax(0, 1fr); }
+
+  /* Parts and trips: three across */
+  #inventoryList, #tripList { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+</style>
 </body>
 </html>

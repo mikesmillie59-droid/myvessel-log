@@ -2547,17 +2547,19 @@ boot();
   /* Dashboard: engine tasks on the left, scheduled maintenance on the right */
   #tab-dashboard.active {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(8, auto) 1fr;
     column-gap: 24px; align-items: start;
   }
-  #tab-dashboard > #dashAlerts      { grid-column: 1 / -1; grid-row: 1; }
+  /* Everything goes in the right-hand column, in its normal order... */
+  #tab-dashboard > * { grid-column: 2; }
+  /* ...except the alert banner (full width) and the engine tasks (left column) */
+  #tab-dashboard > #dashAlerts { grid-column: 1 / -1; grid-row: 1; }
   #tab-dashboard > #dashAlerts + .sec-header { grid-column: 1; grid-row: 2; }
-  #tab-dashboard > #dashEngineTasks { grid-column: 1; grid-row: 3 / span 2; }
-  #tab-dashboard > .divider         { display: none; }
-  #tab-dashboard > .divider + .sec-header { grid-column: 2; grid-row: 2; }
-  #tab-dashboard > #addTaskForm     { grid-column: 2; grid-row: 3; }
-  #tab-dashboard > #dashScheduled   { grid-column: 2; grid-row: 4; }
-  #dashEngineTasks, #dashScheduled  { grid-template-columns: minmax(0, 1fr); }
-  #tab-dashboard > #addTaskForm[style*="none"] + #dashScheduled { grid-row: 3; }
+  #tab-dashboard > #dashEngineTasks { grid-column: 1; grid-row: 3 / -1; }
+  #tab-dashboard > .divider { display: none; }
+  #tab-dashboard > .sec-header { margin-top: 4px; }
+  #dashScheduled { margin-bottom: 16px; }
+  #dashEngineTasks, #dashScheduled { grid-template-columns: minmax(0, 1fr); }
 
   /* Parts and trips: three across */
   #inventoryList, #tripList { grid-template-columns: repeat(3, minmax(0, 1fr)); }
