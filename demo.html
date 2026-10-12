@@ -1074,8 +1074,10 @@ function renderDashboard() {
     if (worst === 'overdue') overdueCount++;
     if (worst === 'due-soon') dueSoonCount++;
     const logged = state.loggedTasks.find(l => l.task === task.name);
-    const loggedClass = logged ? ' logged' : '';
-    const checkIcon = logged ? '✓' : '';
+    // Tick = done this cycle: logged, and not yet due again
+    const doneThisCycle = logged && worst !== 'overdue' && worst !== 'due-soon';
+    const loggedClass = doneThisCycle ? ' logged' : '';
+    const checkIcon = doneThisCycle ? '✓' : '';
     // Show worst status detail
     const displaySt = ps.cls === worst ? ps : ss;
     html += `
@@ -1097,10 +1099,12 @@ function renderDashboard() {
   let schedHTML = '';
   scheduledTasks.forEach((t, i) => {
     const st = getScheduledStatus(t);
+    // Tick = done this cycle: logged, and not yet due again
+    const schedDone = !!state.loggedTasks.find(l => l.task === t.name) && st.cls !== 'overdue' && st.cls !== 'due-soon';
     schedHTML += `
-    <div class="task-card ${st.cls}" onclick="openLogForm('${t.name}','general')" style="animation-delay:${i*0.04}s;cursor:pointer;">
+    <div class="task-card ${st.cls}${schedDone ? ' logged' : ''}" onclick="openLogForm('${t.name}','general')" style="animation-delay:${i*0.04}s;cursor:pointer;">
       <div class="task-main">
-        <div class="task-check">${state.loggedTasks.find(l=>l.task===t.name)?'✓':''}</div>
+        <div class="task-check">${schedDone ? '✓' : ''}</div>
         <div class="task-info">
           <div class="task-name">${t.name}</div>
           <div class="task-meta">Last: ${t.lastDate} · ${t.interval}</div>
@@ -1126,7 +1130,7 @@ function renderEngineList() {
     html += `
     <div class="eng-row-card ${cardCls}" style="animation-delay:${i*0.03}s">
       <div class="eng-row-name" onclick="quickLog('${task.name}','both')">
-        <span>${logged ? '✓ ' : ''}${task.name}</span>
+        <span>${(logged && worst !== 'overdue' && worst !== 'due-soon') ? '✓ ' : ''}${task.name}</span>
         <span class="eng-row-freq">${task.freq}</span>
       </div>
       <div class="eng-row-cols">
